@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trânsito — Quanto custa seu tempo?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<!-- Google Maps loaded dynamically after key is entered -->
+<style>
+/* ============================================================
+   AXIOM DESIGN SYSTEM — Transit Cost Calculator
+   ============================================================ */
+:root {
+  --color-black:       #0A0A0B;
+  --color-zinc-950:    #0F0F11;
+  --color-zinc-900:    #18181B;
+  --color-zinc-800:    #27272A;
+  --color-zinc-700:    #3F3F46;
+  --color-zinc-600:    #52525B;
+  --color-zinc-500:    #71717A;
+  --color-zinc-400:    #A1A1AA;
+  --color-zinc-300:    #D4D4D8;
+  --color-zinc-200:    #E4E4E7;
+  --color-zinc-100:    #F4F4F5;
+  --color-zinc-50:     #FAFAFA;
+  --color-white:       #FFFFFF;
+  --color-accent:      #4F46E5;
+  --color-accent-dim:  #3730A3;
+  --color-accent-glow: #6366F1;
+  --color-accent-muted:#312E81;
+  --color-accent-tint: rgba(79, 70, 229, 0.08);
+  --color-success:     #16A34A;
+  --color-success-bg:  rgba(22, 163, 74, 0.08);
+  --color-warning:     #D97706;
+  --color-warning-bg:  rgba(217, 119, 6, 0.08);
+  --color-error:       #DC2626;
+  --color-error-bg:    rgba(220, 38, 38, 0.08);
+  --color-info:        #0284C7;
+  --color-info-bg:     rgba(2, 132, 199, 0.08);
+  --surface-base:      #0A0A0B;
+  --surface-raised:    #111113;
+  --surface-overlay:   #18181B;
+  --surface-sunken:    #07070A;
+  --surface-border:    #27272A;
+  --surface-border-subtle: #1F1F23;
+  --font-display:      'Playfair Display', Georgia, serif;
+  --font-body:         'DM Sans', system-ui, sans-serif;
+  --font-mono:         'JetBrains Mono', 'Fira Code', monospace;
+  --text-xs:    0.6875rem;
+  --text-sm:    0.8125rem;
+  --text-base:  0.9375rem;
+  --text-md:    1.0625rem;
+  --text-lg:    1.25rem;
+  --text-xl:    1.5rem;
+  --text-2xl:   2rem;
+  --text-3xl:   2.75rem;
+  --text-4xl:   3.75rem;
+  --text-5xl:   5rem;
+  --leading-tight:  1.1;
+  --leading-snug:   1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed:1.7;
+  --tracking-tight:  -0.03em;
+  --tracking-snug:   -0.02em;
+  --tracking-normal:  0em;
+  --tracking-wide:    0.04em;
+  --tracking-wider:   0.1em;
+  --tracking-widest:  0.2em;
+  --space-1:   0.25rem; --space-2:   0.5rem;  --space-3:   0.75rem;
+  --space-4:   1rem;    --space-5:   1.25rem; --space-6:   1.5rem;
+  --space-8:   2rem;    --space-10:  2.5rem;  --space-12:  3rem;
+  --space-16:  4rem;    --space-20:  5rem;    --space-24:  6rem;
+  --space-32:  8rem;
+  --radius-none: 0; --radius-sm: 2px; --radius-md: 4px;
+  --radius-lg: 6px; --radius-xl: 10px; --radius-full: 9999px;
+  --border-subtle:  1px solid var(--surface-border-subtle);
+  --border-default: 1px solid var(--surface-border);
+  --border-strong:  1px solid var(--color-zinc-600);
+  --border-accent:  1px solid var(--color-accent);
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg:  0 12px 32px rgba(0,0,0,0.6);
+  --shadow-xl:  0 24px 64px rgba(0,0,0,0.7);
+  --shadow-accent: 0 0 0 3px rgba(79,70,229,0.25);
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 100ms; --duration-base: 180ms;
+  --duration-slow: 280ms; --duration-slower: 420ms;
+  --sidebar-width: 240px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  background: var(--surface-base);
+  color: var(--color-zinc-200);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--surface-base); }
+::-webkit-scrollbar-thumb { background: var(--color-zinc-700); border-radius: 2px; }
+
+/* NAV */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  background: rgba(10,10,11,0.92); backdrop-filter: blur(12px);
+  border-bottom: var(--border-subtle);
+  display: flex; align-items: center;
+  padding: 0 var(--space-8); z-index: 200; gap: var(--space-4);
+}
+.nav-logo {
+  font-family: var(--font-mono); font-size: var(--text-sm);
+  font-weight: 500; letter-spacing: var(--tracking-widest);
+  color: var(--color-white); text-transform: uppercase;
+}
+.nav-logo span { color: var(--color-accent-glow); }
+.nav-badge {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: var(--tracking-wider); color: var(--color-accent-glow);
+  background: var(--color-accent-tint); border: 1px solid rgba(99,102,241,0.2);
+  padding: 3px 8px; border-radius: var(--radius-sm); text-transform: uppercase;
+}
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-3); }
+
+/* LAYOUT */
+.page { padding-top: 52px; min-height: 100vh; }
+.dashboard-shell { display: flex; min-height: calc(100vh - 52px); }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-width); background: var(--surface-raised);
+  border-right: var(--border-subtle); flex-shrink: 0;
+  padding: var(--space-5) 0; display: flex; flex-direction: column;
+  position: sticky; top: 52px; height: calc(100vh - 52px); overflow-y: auto;
+}
+.sidebar-section-label {
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: var(--tracking-widest); color: var(--color-zinc-700);
+  text-transform: uppercase; padding: var(--space-5) var(--space-5) var(--space-2);
+}
+.sidebar-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  color: var(--color-zinc-500); font-size: var(--text-sm);
+  cursor: pointer; transition: color var(--duration-base), background var(--duration-base);
+  position: relative;
+}
+.sidebar-item:hover { color: var(--color-zinc-200); background: rgba(255,255,255,0.03); }
+.sidebar-item.active { color: var(--color-white); background: rgba(79,70,229,0.08); }
+.sidebar-item.active::before {
+  content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
+  width: 2px; background: var(--color-accent); border-radius: 0 2px 2px 0;
+}
+.sidebar-icon { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
+.sidebar-item.active .sidebar-icon { opacity: 1; }
+
+/* MAIN */
+.dashboard-main { flex: 1; overflow: auto; padding: var(--space-8); }
+
+/* CARDS */
+.card {
+  background: var(--surface-raised); border: var(--border-subtle);
+  border-radius: var(--radius-lg); padding: var(--space-6);
+  transition: border-color var(--duration-slow) var(--ease-out);
+}
+.card:hover { border-color: var(--color-zinc-700); }
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+.card-title { font-size: var(--text-sm); font-weight: 500; color: var(--color-zinc-200); letter-spacing: -0.01em; }
+.card-meta { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-zinc-600); }
+
+/* STAT CARDS */
+.stat-card {
+  background: var(--surface-raised); border: var(--border-subtle);
+  border-radius: var(--radius-lg); padding: var(--space-6);
+  position: relative; overflow: hidden;
+  transition: border-color var(--duration-slow) var(--ease-out);
+}
+.stat-card:hover { border-color: var(--color-zinc-700); }
+.stat-card-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--color-zinc-600); letter-spacing: var(--tracking-wider);
+  text-transform: uppercase; margin-bottom: var(--space-3);
+}
+.stat-card-value {
+  font-family: var(--font-mono); font-size: var(--text-2xl);
+  font-weight: 300; color: var(--color-white);
+  letter-spacing: var(--tracking-tight); line-height: 1; margin-bottom: var(--space-3);
+}
+.stat-card-sub { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-zinc-600); }
+.stat-card.accent { border-color: rgba(99,102,241,0.3); background: linear-gradient(135deg, var(--surface-raised), rgba(79,70,229,0.05)); }
+.stat-card.accent .stat-card-value { color: var(--color-accent-glow); }
+
+/* HERO STAT */
+.hero-stat {
+  background: var(--surface-raised); border: 1px solid rgba(99,102,241,0.25);
+  border-radius: var(--radius-xl); padding: var(--space-10);
+  position: relative; overflow: hidden; margin-bottom: var(--space-8);
+  background: linear-gradient(135deg, #111113 0%, rgba(79,70,229,0.06) 100%);
+}
+.hero-stat::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent); opacity: 0.5;
+}
+.hero-grid-bg {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(39,39,42,0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(39,39,42,0.15) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 80%);
+  pointer-events: none;
+}
+
+/* INPUTS */
+.input-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.input-label {
+  font-size: var(--text-xs); font-weight: 500; color: var(--color-zinc-400);
+  letter-spacing: var(--tracking-wide); text-transform: uppercase;
+}
+.input {
+  background: var(--surface-overlay); border: var(--border-default);
+  border-radius: var(--radius-md); color: var(--color-zinc-200);
+  font-family: var(--font-body); font-size: var(--text-sm);
+  height: 40px; padding: 0 var(--space-4); outline: none; width: 100%;
+  transition: border-color var(--duration-base), box-shadow var(--duration-base);
+}
+.input::placeholder { color: var(--color-zinc-600); }
+.input:hover { border-color: var(--color-zinc-600); }
+.input:focus { border-color: var(--color-accent); box-shadow: var(--shadow-accent); }
+.select {
+  background: var(--surface-overlay); border: var(--border-default);
+  border-radius: var(--radius-md); color: var(--color-zinc-200);
+  font-family: var(--font-body); font-size: var(--text-sm);
+  height: 40px; padding: 0 var(--space-8) 0 var(--space-4);
+  outline: none; appearance: none; cursor: pointer; width: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%2371717A' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
+  transition: border-color var(--duration-base), box-shadow var(--duration-base);
+}
+.select:focus { border-color: var(--color-accent); box-shadow: var(--shadow-accent); }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-family: var(--font-body); font-size: var(--text-sm); font-weight: 500;
+  letter-spacing: 0.01em; cursor: pointer; border: none;
+  border-radius: var(--radius-md);
+  transition: background var(--duration-base), color var(--duration-base),
+    box-shadow var(--duration-base), transform var(--duration-fast);
+  white-space: nowrap; user-select: none;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary {
+  background: var(--color-accent); color: var(--color-white);
+  padding: var(--space-3) var(--space-6); height: 40px;
+}
+.btn-primary:hover {
+  background: var(--color-accent-glow);
+  box-shadow: 0 0 0 4px rgba(99,102,241,0.15), var(--shadow-sm);
+}
+.btn-primary-lg {
+  background: var(--color-accent); color: var(--color-white);
+  padding: var(--space-4) var(--space-8); height: 48px;
+  font-size: var(--text-base); border-radius: var(--radius-md);
+  width: 100%; justify-content: center;
+}
+.btn-primary-lg:hover { background: var(--color-accent-glow); box-shadow: 0 0 0 4px rgba(99,102,241,0.15); }
+.btn-secondary {
+  background: var(--surface-overlay); color: var(--color-zinc-300);
+  padding: var(--space-3) var(--space-6); border: var(--border-default); height: 40px;
+}
+.btn-secondary:hover { background: var(--color-zinc-800); color: var(--color-white); border-color: var(--color-zinc-600); }
+.btn-ghost {
+  background: transparent; color: var(--color-zinc-400);
+  padding: var(--space-2) var(--space-3); height: 32px; font-size: var(--text-xs);
+}
+.btn-ghost:hover { color: var(--color-white); background: var(--surface-overlay); }
+.btn-danger {
+  background: var(--color-error-bg); color: var(--color-error);
+  border: 1px solid rgba(220,38,38,0.2); padding: var(--space-2) var(--space-3); height: 32px; font-size: var(--text-xs);
+}
+.btn-danger:hover { background: rgba(220,38,38,0.15); }
+
+/* BADGES */
+.badge {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  letter-spacing: var(--tracking-wider); text-transform: uppercase;
+  padding: 3px 8px; border-radius: var(--radius-sm); white-space: nowrap;
+}
+.badge-default { background: var(--surface-overlay); color: var(--color-zinc-400); border: var(--border-default); }
+.badge-accent  { background: var(--color-accent-tint); color: var(--color-accent-glow); border: 1px solid rgba(99,102,241,0.2); }
+.badge-success { background: var(--color-success-bg); color: var(--color-success); border: 1px solid rgba(22,163,74,0.2); }
+.badge-warning { background: var(--color-warning-bg); color: var(--color-warning); border: 1px solid rgba(217,119,6,0.2); }
+.badge-error   { background: var(--color-error-bg); color: var(--color-error); border: 1px solid rgba(220,38,38,0.2); }
+.badge-dot::before {
+  content: ''; display: inline-block; width: 5px; height: 5px;
+  border-radius: var(--radius-full); background: currentColor; flex-shrink: 0;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.badge-live::before { animation: pulse 2s infinite; }
+
+/* TABS */
+.tabs { display: flex; gap: var(--space-1); border-bottom: var(--border-subtle); }
+.tab {
+  font-size: var(--text-sm); color: var(--color-zinc-500);
+  padding: var(--space-3) var(--space-4); cursor: pointer;
+  transition: color var(--duration-base); user-select: none;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tab:hover { color: var(--color-zinc-300); }
+.tab.active { color: var(--color-white); border-bottom-color: var(--color-accent); }
+
+/* DIVIDER */
+.divider { height: 1px; background: var(--surface-border-subtle); margin: var(--space-6) 0; }
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-5); }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: var(--space-5); }
+
+/* FLEX */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.gap-6 { gap: var(--space-6); }
+.gap-8 { gap: var(--space-8); }
+
+/* TEXT */
+.text-white { color: var(--color-white); }
+.text-dim { color: var(--color-zinc-400); }
+.text-muted { color: var(--color-zinc-500); }
+.text-subtle { color: var(--color-zinc-600); }
+.text-accent { color: var(--color-accent-glow); }
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-error { color: var(--color-error); }
+.text-mono { font-family: var(--font-mono); }
+.text-display { font-family: var(--font-display); }
+.text-sm { font-size: var(--text-sm); }
+.text-xs { font-size: var(--text-xs); }
+.text-lg { font-size: var(--text-lg); }
+.text-xl { font-size: var(--text-xl); }
+.font-medium { font-weight: 500; }
+
+/* SPACING */
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-5 { margin-bottom: var(--space-5); }
+.mb-6 { margin-bottom: var(--space-6); }
+.mb-8 { margin-bottom: var(--space-8); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-6 { margin-top: var(--space-6); }
+.mt-8 { margin-top: var(--space-8); }
+
+/* SKELETON */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-overlay) 25%, var(--color-zinc-800) 50%, var(--surface-overlay) 75%);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite;
+  border-radius: var(--radius-md);
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* LOADING BAR */
+.loading-bar { height: 2px; background: var(--surface-overlay); border-radius: var(--radius-full); overflow: hidden; }
+.loading-bar-fill {
+  height: 100%; background: var(--color-accent);
+  animation: load 1.8s ease-in-out infinite;
+}
+@keyframes load { 0% { width: 0%; opacity: 1; } 70% { width: 80%; opacity: 1; } 100% { width: 100%; opacity: 0; } }
+
+/* EMPTY STATE */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  padding: var(--space-16) var(--space-8); text-align: center;
+  border: 1px dashed var(--color-zinc-800); border-radius: var(--radius-lg);
+}
+.empty-state-icon {
+  width: 48px; height: 48px; background: var(--surface-overlay);
+  border: var(--border-default); border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: var(--space-5); color: var(--color-zinc-600); font-size: 20px;
+}
+.empty-state-title { font-size: var(--text-sm); font-weight: 500; color: var(--color-zinc-300); margin-bottom: var(--space-2); }
+.empty-state-desc { font-size: var(--text-sm); color: var(--color-zinc-600); max-width: 280px; line-height: var(--leading-relaxed); }
+
+/* CHART */
+.chart-container { background: var(--surface-raised); border: var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
+.chart-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-5) var(--space-6); border-bottom: var(--border-subtle);
+}
+.chart-title { font-size: var(--text-sm); font-weight: 500; color: var(--color-zinc-200); }
+.chart-body { padding: var(--space-6); height: 180px; display: flex; align-items: flex-end; gap: 3px; }
+.chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.chart-bar {
+  width: 100%; background: var(--color-zinc-800);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: background var(--duration-base), height 0.6s var(--ease-out);
+  min-height: 4px; cursor: pointer;
+}
+.chart-bar:hover { background: var(--color-accent); }
+.chart-bar.highlight { background: var(--color-accent); opacity: 0.9; }
+.chart-bar-label { font-family: var(--font-mono); font-size: 9px; color: var(--color-zinc-700); text-align: center; }
+
+/* ANIMATIONS */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.animate-fade-up { animation: fadeUp var(--duration-slower) var(--ease-out) both; }
+.animate-delay-1 { animation-delay: 80ms; }
+.animate-delay-2 { animation-delay: 160ms; }
+.animate-delay-3 { animation-delay: 240ms; }
+.animate-delay-4 { animation-delay: 320ms; }
+.animate-delay-5 { animation-delay: 400ms; }
+
+/* INSIGHT CARD */
+.insight-card {
+  background: var(--surface-raised); border: var(--border-subtle);
+  border-radius: var(--radius-lg); padding: var(--space-5);
+  display: flex; gap: var(--space-4); align-items: flex-start;
+  transition: border-color var(--duration-slow);
+}
+.insight-card:hover { border-color: var(--color-zinc-700); }
+.insight-icon {
+  width: 36px; height: 36px; border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 16px;
+}
+.insight-icon.purple { background: var(--color-accent-tint); }
+.insight-icon.orange { background: var(--color-warning-bg); }
+.insight-icon.green { background: var(--color-success-bg); }
+.insight-icon.red { background: var(--color-error-bg); }
+.insight-text { font-size: var(--text-sm); color: var(--color-zinc-300); line-height: var(--leading-relaxed); }
+.insight-text strong { color: var(--color-white); font-weight: 600; }
+
+/* ROUTE ITEM */
+.route-item {
+  background: var(--surface-raised); border: var(--border-subtle);
+  border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+  display: flex; align-items: center; gap: var(--space-4);
+  transition: border-color var(--duration-slow);
+}
+.route-item:hover { border-color: var(--color-zinc-700); }
+.route-icon { font-size: 18px; flex-shrink: 0; }
+.route-info { flex: 1; min-width: 0; }
+.route-name { font-size: var(--text-sm); font-weight: 500; color: var(--color-zinc-200); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.route-meta { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-zinc-600); margin-top: 2px; }
+.route-cost { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-accent-glow); font-weight: 500; flex-shrink: 0; }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px); z-index: 400;
+  display: flex; align-items: center; justify-content: center; padding: var(--space-4);
+}
+.modal {
+  background: var(--surface-raised); border: var(--border-default);
+  border-radius: var(--radius-xl); padding: var(--space-8);
+  width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--shadow-xl); position: relative;
+}
+.modal-title { font-family: var(--font-display); font-size: var(--text-xl); color: var(--color-white); font-weight: 400; margin-bottom: var(--space-2); }
+.modal-desc { font-size: var(--text-sm); color: var(--color-zinc-500); margin-bottom: var(--space-6); line-height: var(--leading-relaxed); }
+.modal-close {
+  position: absolute; top: var(--space-5); right: var(--space-5);
+  background: var(--surface-overlay); border: var(--border-default);
+  border-radius: var(--radius-md); width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--color-zinc-400); font-size: 14px;
+  transition: color var(--duration-base), background var(--duration-base);
+}
+.modal-close:hover { color: var(--color-white); background: var(--color-zinc-800); }
+
+/* TRANSPORT MODE SELECTOR */
+.transport-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); margin-bottom: var(--space-4); }
+.transport-btn {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+  padding: var(--space-3) var(--space-2); border: var(--border-default);
+  border-radius: var(--radius-md); background: var(--surface-overlay);
+  cursor: pointer; transition: all var(--duration-base); font-size: 20px;
+}
+.transport-btn span { font-size: 9px; font-family: var(--font-mono); color: var(--color-zinc-600); text-transform: uppercase; letter-spacing: 0.05em; }
+.transport-btn:hover { border-color: var(--color-zinc-600); background: var(--color-zinc-800); }
+.transport-btn.selected { border-color: var(--color-accent); background: var(--color-accent-tint); }
+.transport-btn.selected span { color: var(--color-accent-glow); }
+
+/* STATUS INDICATORS */
+.status-dot { width: 7px; height: 7px; border-radius: var(--radius-full); flex-shrink: 0; }
+.status-dot.operational { background: var(--color-success); }
+.status-dot.degraded { background: var(--color-warning); }
+
+/* PROGRESS BAR */
+.progress-bar { height: 4px; background: var(--surface-overlay); border-radius: var(--radius-full); overflow: hidden; }
+.progress-fill { height: 100%; border-radius: var(--radius-full); transition: width 0.8s var(--ease-out); }
+
+/* TOAST */
+.toast-container { position: fixed; bottom: var(--space-6); right: var(--space-6); z-index: 500; display: flex; flex-direction: column; gap: var(--space-3); }
+.toast {
+  display: flex; align-items: flex-start; gap: var(--space-3);
+  background: var(--surface-overlay); border: var(--border-default);
+  border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+  max-width: 320px; box-shadow: var(--shadow-lg); position: relative; overflow: hidden;
+  animation: fadeUp var(--duration-slow) var(--ease-out) both;
+}
+.toast::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+.toast-success::before { background: var(--color-success); }
+.toast-error::before { background: var(--color-error); }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .dashboard-main { padding: var(--space-4); }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .transport-grid { grid-template-columns: repeat(5, 1fr); }
+  .hero-stat { padding: var(--space-6); }
+}
+
+/* MISC */
+.section-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: var(--tracking-widest); color: var(--color-zinc-600);
+  text-transform: uppercase; margin-bottom: var(--space-5);
+  display: flex; align-items: center; gap: var(--space-3);
+}
+.section-label::before { content: ''; display: block; width: 16px; height: 1px; background: var(--color-zinc-700); }
+
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+@media (max-width: 520px) { .input-row { grid-template-columns: 1fr; } }
+
+.simulator-option {
+  background: var(--surface-overlay); border: var(--border-default);
+  border-radius: var(--radius-md); padding: var(--space-4);
+  display: flex; align-items: center; gap: var(--space-3); cursor: pointer;
+  transition: border-color var(--duration-base), background var(--duration-base);
+}
+.simulator-option:hover { border-color: var(--color-zinc-600); }
+.simulator-option.active { border-color: var(--color-accent); background: var(--color-accent-tint); }
+.simulator-icon { font-size: 20px; }
+.simulator-info { flex: 1; }
+.simulator-name { font-size: var(--text-sm); color: var(--color-zinc-200); font-weight: 500; }
+.simulator-time { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-zinc-600); }
+.simulator-cost { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-accent-glow); }
+
+/* section separator */
+.page-section { margin-bottom: var(--space-8); }
+
+/* mini bar chart */
+.mini-bar-chart { display: flex; align-items: flex-end; gap: 2px; height: 60px; }
+.mini-bar { flex: 1; border-radius: 2px 2px 0 0; transition: height 0.6s var(--ease-out); min-height: 3px; }
+
+/* autocomplete */
+.autocomplete-wrap { position: relative; }
+.autocomplete-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--surface-overlay); border: var(--border-default);
+  border-radius: var(--radius-md); z-index: 100;
+  box-shadow: var(--shadow-lg); max-height: 200px; overflow-y: auto;
+}
+.autocomplete-item {
+  padding: var(--space-3) var(--space-4); font-size: var(--text-sm);
+  color: var(--color-zinc-300); cursor: pointer;
+  transition: background var(--duration-fast);
+  display: flex; align-items: center; gap: var(--space-3);
+}
+.autocomplete-item:hover { background: var(--surface-border); color: var(--color-white); }
+.autocomplete-item .icon { color: var(--color-zinc-600); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">TR<span>·</span>NSIT</div>
+  <div class="nav-badge">Beta</div>
+  <div class="nav-right">
+    <div class="badge badge-accent badge-dot badge-live" id="api-status">✦ IA ativa</div>
+    <button class="btn btn-ghost" onclick="openApiSettings()" id="maps-btn" style="height:32px; padding: 0 var(--space-3); font-size: var(--text-xs); gap: var(--space-2);">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1"/></svg>
+      <span id="maps-btn-label">Conectar Google Maps</span>
+    </button>
+    <button class="btn btn-primary" onclick="openModal()" style="height:32px; padding: 0 var(--space-4); font-size: var(--text-xs);">
+      + Novo trajeto
+    </button>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="dashboard-shell">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-section-label">Navegação</div>
+      <div class="sidebar-item active" onclick="showTab('dashboard')">
+        <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+          <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+        </svg>
+        Dashboard
+      </div>
+      <div class="sidebar-item" onclick="showTab('trajetos')">
+        <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="3" cy="4" r="1.5"/><circle cx="13" cy="12" r="1.5"/>
+          <path d="M3 5.5 C3 9 7 7 10 9 S13 10.5 13 10.5"/>
+        </svg>
+        Meus trajetos
+      </div>
+      <div class="sidebar-item" onclick="showTab('simulador')">
+        <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M2 8 L6 4 L10 7 L14 2"/><path d="M11 2 L14 2 L14 5"/>
+        </svg>
+        Simulador
+      </div>
+      <div class="sidebar-item" onclick="showTab('insights')">
+        <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="6"/><path d="M8 5 L8 8"/><circle cx="8" cy="11" r="0.5" fill="currentColor"/>
+        </svg>
+        Insights
+      </div>
+
+      <div style="margin-top: auto; padding: var(--space-5);">
+        <div class="card" style="padding: var(--space-4);">
+          <div class="text-xs text-subtle mb-2" style="font-family: var(--font-mono);">Salário/hora</div>
+          <div class="text-accent" style="font-family: var(--font-mono); font-size: var(--text-md); font-weight: 300;" id="sidebar-valor-hora">—</div>
+          <div class="text-xs text-subtle mt-2">Baseado em 160h/mês</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="dashboard-main">
+
+      <!-- LANDING / ONBOARDING (shown when no routes) -->
+      <div id="landing-view">
+        <div style="max-width: 640px; margin: var(--space-16) auto 0; text-align: center; padding: 0 var(--space-4);">
+          <div class="badge badge-accent mb-6" style="margin: 0 auto var(--space-6);">Calculadora de tempo em trânsito</div>
+          <h1 class="animate-fade-up" style="font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 400; color: var(--color-white); line-height: var(--leading-tight); letter-spacing: var(--tracking-tight); margin-bottom: var(--space-6);">
+            Quanto <em style="font-style: italic; color: var(--color-zinc-400);">custa</em> seu<br>tempo no trânsito?
+          </h1>
+          <p class="animate-fade-up animate-delay-1 text-muted" style="font-size: var(--text-md); line-height: var(--leading-relaxed); margin-bottom: var(--space-10); max-width: 440px; margin-left: auto; margin-right: auto;">
+            Descubra o custo real das horas perdidas em deslocamento, em termos de tempo e dinheiro.
+          </p>
+          <button class="btn btn-primary-lg animate-fade-up animate-delay-2" onclick="openModal()" style="max-width: 340px; margin: 0 auto;">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="3" cy="4" r="1.5"/><circle cx="13" cy="12" r="1.5"/>
+              <path d="M3 5.5 C3 9 7 7 10 9 S13 10.5 13 10.5"/>
+            </svg>
+            Descobrir quanto meu tempo custa
+          </button>
+          <p class="text-subtle text-xs mt-4 animate-fade-up animate-delay-3">Leva menos de 30 segundos · Sem cadastro necessário</p>
+
+          <div class="grid-3 animate-fade-up animate-delay-4" style="margin-top: var(--space-16); text-align: left; gap: var(--space-4);">
+            <div class="card" style="padding: var(--space-5);">
+              <div style="font-size: 24px; margin-bottom: var(--space-3);">⏱</div>
+              <div class="text-sm font-medium mb-2">Tempo real</div>
+              <div class="text-xs text-subtle" style="line-height: 1.6">Calcule horas por dia, mês e ano gastas em deslocamento.</div>
+            </div>
+            <div class="card" style="padding: var(--space-5);">
+              <div style="font-size: 24px; margin-bottom: var(--space-3);">💰</div>
+              <div class="text-sm font-medium mb-2">Custo financeiro</div>
+              <div class="text-xs text-subtle" style="line-height: 1.6">Converta seu salário em valor por hora e saiba o custo real.</div>
+            </div>
+            <div class="card" style="padding: var(--space-5);">
+              <div style="font-size: 24px; margin-bottom: var(--space-3);">📊</div>
+              <div class="text-sm font-medium mb-2">Simulações</div>
+              <div class="text-xs text-subtle" style="line-height: 1.6">Compare diferentes meios de transporte e cenários.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD TAB -->
+      <div id="tab-dashboard" class="tab-content" style="display:none;">
+
+        <!-- HERO STAT -->
+        <div class="hero-stat animate-fade-up">
+          <div class="hero-grid-bg"></div>
+          <div style="position: relative; z-index: 1;">
+            <div class="section-label mb-4">Custo total do seu trânsito</div>
+            <div class="flex items-center gap-8 flex-wrap">
+              <div>
+                <div class="text-subtle text-xs text-mono mb-2">CUSTO ANUAL DO TEMPO</div>
+                <div id="hero-custo-anual" style="font-family: var(--font-mono); font-size: clamp(2rem, 6vw, 4rem); font-weight: 300; color: var(--color-white); line-height: 1; letter-spacing: var(--tracking-tight);">R$ 0</div>
+                <div class="text-subtle text-xs text-mono mt-2">baseado no seu salário por hora</div>
+              </div>
+              <div style="width: 1px; height: 80px; background: var(--surface-border); display: none;" id="hero-divider"></div>
+              <div id="hero-right" style="display:none;">
+                <div class="flex gap-6 flex-wrap">
+                  <div>
+                    <div class="text-subtle text-xs text-mono mb-1">HORAS/ANO</div>
+                    <div id="hero-horas-ano" class="text-accent" style="font-family: var(--font-mono); font-size: var(--text-2xl); font-weight: 300;">0h</div>
+                  </div>
+                  <div>
+                    <div class="text-subtle text-xs text-mono mb-1">% DO SALÁRIO</div>
+                    <div id="hero-pct" class="text-warning" style="font-family: var(--font-mono); font-size: var(--text-2xl); font-weight: 300;">0%</div>
+                  </div>
+                  <div>
+                    <div class="text-subtle text-xs text-mono mb-1">DIAS/ANO</div>
+                    <div id="hero-dias" class="text-error" style="font-family: var(--font-mono); font-size: var(--text-2xl); font-weight: 300;">0d</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STATS GRID -->
+        <div class="grid-4 mb-8 animate-fade-up animate-delay-1" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-label">Tempo / dia</div>
+            <div class="stat-card-value" id="stat-tempo-dia">—</div>
+            <div class="stat-card-sub">ida + volta</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Tempo / mês</div>
+            <div class="stat-card-value" id="stat-tempo-mes">—</div>
+            <div class="stat-card-sub">21.5 dias úteis</div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-card-label">Custo / mês</div>
+            <div class="stat-card-value" id="stat-custo-mes">—</div>
+            <div class="stat-card-sub">do seu salário em tempo</div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-card-label">Custo / ano</div>
+            <div class="stat-card-value" id="stat-custo-ano">—</div>
+            <div class="stat-card-sub">custo total do tempo</div>
+          </div>
+        </div>
+
+        <!-- CHARTS ROW -->
+        <div class="grid-2 mb-8 animate-fade-up animate-delay-2">
+          <!-- TIME CHART -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <div class="chart-title">Tempo por dia da semana</div>
+              <div class="badge badge-default" id="chart-tempo-label">horas</div>
+            </div>
+            <div class="chart-body" id="chart-tempo-body">
+              <div style="display: flex; align-items: center; justify-content: center; width: 100%; color: var(--color-zinc-700); font-size: var(--text-sm);">Adicione um trajeto para visualizar</div>
+            </div>
+          </div>
+
+          <!-- COST CHART -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <div class="chart-title">Custo acumulado no mês</div>
+              <div class="badge badge-accent" id="chart-custo-label">R$</div>
+            </div>
+            <div class="chart-body" id="chart-custo-body">
+              <div style="display: flex; align-items: center; justify-content: center; width: 100%; color: var(--color-zinc-700); font-size: var(--text-sm);">Adicione um trajeto para visualizar</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CUSTO DIRETO + TOTAL -->
+        <div class="card mb-8 animate-fade-up animate-delay-3" id="custo-direto-section" style="display:none;">
+          <div class="card-header">
+            <div class="card-title">Custo combinado (tempo + transporte direto)</div>
+            <div class="badge badge-warning">Total real</div>
+          </div>
+          <div class="grid-3">
+            <div>
+              <div class="text-xs text-subtle text-mono mb-2">CUSTO DO TEMPO / MÊS</div>
+              <div class="text-accent text-mono" style="font-size: var(--text-xl); font-weight: 300;" id="custo-tempo-mes-dir">—</div>
+            </div>
+            <div>
+              <div class="text-xs text-subtle text-mono mb-2">CUSTO DIRETO / MÊS</div>
+              <div class="text-warning text-mono" style="font-size: var(--text-xl); font-weight: 300;" id="custo-direto-mes">—</div>
+            </div>
+            <div>
+              <div class="text-xs text-subtle text-mono mb-2">TOTAL REAL / MÊS</div>
+              <div class="text-white text-mono" style="font-size: var(--text-xl); font-weight: 300;" id="custo-total-mes">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUICK INSIGHT -->
+        <div class="card animate-fade-up animate-delay-4" id="quick-insight-card" style="display:none;">
+          <div class="card-header">
+            <div class="card-title">Insight rápido</div>
+          </div>
+          <div class="insight-card" style="border: none; padding: 0;">
+            <div class="insight-icon purple">⚡</div>
+            <div class="insight-text" id="quick-insight-text">—</div>
+          </div>
+        </div>
+
+      </div><!-- /tab-dashboard -->
+
+      <!-- TRAJETOS TAB -->
+      <div id="tab-trajetos" class="tab-content" style="display:none;">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <div class="section-label">Seus trajetos salvos</div>
+            <h2 style="font-family: var(--font-display); font-size: var(--text-2xl); color: var(--color-white); font-weight: 400;">Trajetos cadastrados</h2>
+          </div>
+          <button class="btn btn-primary" onclick="openModal()">+ Novo trajeto</button>
+        </div>
+
+        <div id="trajetos-list" class="flex-col gap-3"></div>
+
+        <div id="trajetos-empty" class="empty-state mt-8">
+          <div class="empty-state-icon">🚗</div>
+          <div class="empty-state-title">Nenhum trajeto cadastrado</div>
+          <div class="empty-state-desc">Adicione seu primeiro trajeto para começar a calcular o custo do seu tempo no trânsito.</div>
+          <button class="btn btn-primary mt-4" onclick="openModal()">+ Adicionar trajeto</button>
+        </div>
+      </div>
+
+      <!-- SIMULADOR TAB -->
+      <div id="tab-simulador" class="tab-content" style="display:none;">
+        <div class="mb-6">
+          <div class="section-label">Comparação de cenários</div>
+          <h2 style="font-family: var(--font-display); font-size: var(--text-2xl); color: var(--color-white); font-weight: 400;">Simulador de alternativas</h2>
+          <p class="text-muted text-sm mt-2">Compare diferentes meios de transporte e veja o impacto financeiro de cada escolha.</p>
+        </div>
+
+        <div id="simulador-no-routes" class="empty-state mt-8">
+          <div class="empty-state-icon">📊</div>
+          <div class="empty-state-title">Adicione um trajeto primeiro</div>
+          <div class="empty-state-desc">O simulador precisa de pelo menos um trajeto para calcular alternativas.</div>
+          <button class="btn btn-primary mt-4" onclick="openModal()">+ Adicionar trajeto</button>
+        </div>
+
+        <div id="simulador-content" style="display:none;">
+          <div class="card mb-6">
+            <div class="card-header">
+              <div class="card-title">Selecione o trajeto para simular</div>
+            </div>
+            <div id="sim-route-selector" class="flex-col gap-2"></div>
+          </div>
+
+          <div class="grid-2 mb-6" id="sim-compare-grid">
+            <!-- filled by JS -->
+          </div>
+
+          <div class="card" id="sim-savings-card" style="display:none;">
+            <div class="card-header">
+              <div class="card-title">💡 Se você reduzir 30 min/dia...</div>
+              <div class="badge badge-success">Economia potencial</div>
+            </div>
+            <div class="grid-3">
+              <div>
+                <div class="text-xs text-subtle text-mono mb-1">ECONOMIA / MÊS</div>
+                <div class="text-success text-mono" style="font-size: var(--text-xl);" id="sim-eco-mes">—</div>
+              </div>
+              <div>
+                <div class="text-xs text-subtle text-mono mb-1">ECONOMIA / ANO</div>
+                <div class="text-success text-mono" style="font-size: var(--text-xl);" id="sim-eco-ano">—</div>
+              </div>
+              <div>
+                <div class="text-xs text-subtle text-mono mb-1">HORAS RECUPERADAS / ANO</div>
+                <div class="text-accent text-mono" style="font-size: var(--text-xl);" id="sim-horas-rec">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INSIGHTS TAB -->
+      <div id="tab-insights" class="tab-content" style="display:none;">
+        <div class="mb-6">
+          <div class="section-label">Análise detalhada</div>
+          <h2 style="font-family: var(--font-display); font-size: var(--text-2xl); color: var(--color-white); font-weight: 400;">Seus insights de trânsito</h2>
+        </div>
+
+        <div id="insights-no-routes" class="empty-state mt-8">
+          <div class="empty-state-icon">💡</div>
+          <div class="empty-state-title">Sem dados suficientes</div>
+          <div class="empty-state-desc">Adicione um trajeto para ver seus insights personalizados.</div>
+          <button class="btn btn-primary mt-4" onclick="openModal()">+ Adicionar trajeto</button>
+        </div>
+
+        <div id="insights-content" style="display:none;">
+          <div class="flex-col gap-4 mb-8" id="insights-list"></div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Comparação mensal detalhada</div>
+            </div>
+            <div id="insights-table"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /shell -->
+</div><!-- /page -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" style="display:none;" onclick="handleModalOverlayClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Novo trajeto</div>
+    <div class="modal-desc">Preencha os dados do seu deslocamento diário para calcular o custo real do tempo.</div>
+
+    <div class="flex-col gap-5">
+
+      <!-- ORIGEM / DESTINO -->
+      <div class="input-row">
+        <div class="input-group autocomplete-wrap">
+          <label class="input-label">📍 Local de partida</label>
+          <input type="text" class="input" id="form-origem" placeholder="Ex: Campinas, SP" autocomplete="off" oninput="handleAutocomplete('origem', this.value)">
+          <div class="autocomplete-dropdown" id="dropdown-origem" style="display:none;"></div>
+        </div>
+        <div class="input-group autocomplete-wrap">
+          <label class="input-label">🏁 Local de chegada</label>
+          <input type="text" class="input" id="form-destino" placeholder="Ex: São Paulo, SP" autocomplete="off" oninput="handleAutocomplete('destino', this.value)">
+          <div class="autocomplete-dropdown" id="dropdown-destino" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- TRANSPORTE -->
+      <div class="input-group">
+        <label class="input-label">🚗 Meio de transporte</label>
+        <div class="transport-grid" id="transport-grid">
+          <div class="transport-btn selected" data-mode="carro" onclick="selectTransport(this)">🚗<span>Carro</span></div>
+          <div class="transport-btn" data-mode="metro" onclick="selectTransport(this)">🚇<span>Metrô/Bus</span></div>
+          <div class="transport-btn" data-mode="bike" onclick="selectTransport(this)">🚲<span>Bike</span></div>
+          <div class="transport-btn" data-mode="caminhada" onclick="selectTransport(this)">🚶<span>A pé</span></div>
+          <div class="transport-btn" data-mode="app" onclick="selectTransport(this)">📱<span>App</span></div>
+        </div>
+      </div>
+
+      <!-- HORÁRIO + DIAS -->
+      <div class="input-row">
+        <div class="input-group">
+          <label class="input-label">🕐 Horário de partida</label>
+          <input type="time" class="input" id="form-horario" value="08:00" onchange="recalcOnHorarioChange()">
+        </div>
+        <div class="input-group">
+          <label class="input-label">📅 Dias por semana</label>
+          <select class="select" id="form-dias">
+            <option value="5">5 dias (seg–sex)</option>
+            <option value="4">4 dias</option>
+            <option value="3">3 dias</option>
+            <option value="2">2 dias</option>
+            <option value="1">1 dia</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- SALÁRIO -->
+      <div class="input-row">
+        <div class="input-group">
+          <label class="input-label">💼 Salário bruto mensal (R$)</label>
+          <input type="number" class="input" id="form-salario" placeholder="Ex: 5000" min="0" step="100" oninput="updateValorHora()">
+        </div>
+        <div class="input-group">
+          <label class="input-label">⏰ Horas trabalhadas/mês</label>
+          <input type="number" class="input" id="form-horas-mes" value="160" min="1" max="300" step="8" oninput="updateValorHora()">
+        </div>
+      </div>
+
+      <!-- VALOR HORA PREVIEW -->
+      <div class="card" style="padding: var(--space-4); background: var(--color-accent-tint); border-color: rgba(99,102,241,0.2);" id="valor-hora-preview" style="display:none;">
+        <div class="flex items-center justify-between">
+          <div class="text-xs text-subtle text-mono">Seu valor por hora trabalhada</div>
+          <div class="text-accent text-mono" style="font-size: var(--text-lg);" id="valor-hora-display">—</div>
+        </div>
+      </div>
+
+      <!-- TEMPO ESTIMADO -->
+      <div class="card" style="padding: var(--space-4);">
+        <div class="flex items-center justify-between mb-3">
+          <div class="card-title">⏱ Tempo estimado do trajeto</div>
+          <button class="btn btn-ghost" onclick="calcularTempo()" id="btn-calcular">Calcular rota</button>
+        </div>
+        <div id="tempo-loading" style="display:none;">
+          <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+          <div class="text-xs text-subtle mt-2">Estimando duração...</div>
+        </div>
+        <div id="tempo-resultado">
+          <div class="input-row">
+            <div class="input-group">
+              <label class="input-label">Minutos (ida)</label>
+              <input type="number" class="input" id="form-tempo" placeholder="Ex: 45" min="1" max="480" oninput="previewCalculo()">
+            </div>
+            <div class="input-group">
+              <label class="input-label">Distância (km)</label>
+              <input type="number" class="input" id="form-distancia" placeholder="Ex: 30" min="0" step="0.5" oninput="previewCalculo()">
+            </div>
+          </div>
+          <div class="text-xs text-subtle mt-2">Ida + volta é calculado automaticamente</div>
+        </div>
+      </div>
+
+      <!-- CUSTO DIRETO (opcional) -->
+      <div>
+        <button class="btn btn-ghost" onclick="toggleCustoDireto()" style="color: var(--color-zinc-500); font-size: var(--text-xs); padding: 0;">
+          + Adicionar custo direto do transporte (opcional)
+        </button>
+        <div id="custo-direto-form" style="display:none; margin-top: var(--space-4);">
+          <div class="input-row">
+            <div class="input-group">
+              <label class="input-label">💸 Custo/dia (R$)</label>
+              <input type="number" class="input" id="form-custo-direto" placeholder="Ex: 15.00" min="0" step="0.50">
+            </div>
+            <div class="input-group">
+              <label class="input-label">Tipo</label>
+              <select class="select" id="form-custo-tipo">
+                <option value="passagem">Passagem</option>
+                <option value="combustivel">Combustível</option>
+                <option value="uber">Uber/99</option>
+                <option value="pedagio">Pedágio</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREVIEW RÁPIDO -->
+      <div class="card" id="preview-card" style="display:none; background: linear-gradient(135deg, var(--surface-raised), rgba(79,70,229,0.04));">
+        <div class="card-header" style="margin-bottom: var(--space-3);">
+          <div class="card-title">Pré-visualização</div>
+          <div class="badge badge-accent">Estimativa</div>
+        </div>
+        <div class="grid-3" id="preview-grid"></div>
+      </div>
+
+      <button class="btn btn-primary-lg" onclick="salvarTrajeto()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 5L6 12L3 9"/></svg>
+        Salvar trajeto e calcular
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- API SETTINGS MODAL -->
+<div class="modal-overlay" id="modal-api" style="display:none;" onclick="if(event.target.id==='modal-api') closeApiSettings()">
+  <div class="modal" style="max-width: 480px;" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeApiSettings()">✕</button>
+    <div class="modal-title">Configurar Google Maps</div>
+    <div class="modal-desc">
+      Conecte sua Google Maps API Key para obter dados reais de rota, trânsito em tempo real e autocomplete de endereços.
+      Sem a key, o sistema usa IA como fallback.
+    </div>
+
+    <div class="flex-col gap-4">
+
+      <!-- Key input -->
+      <div class="input-group">
+        <label class="input-label">🔑 Google Maps API Key</label>
+        <div style="position: relative;">
+          <input type="password" class="input" id="gmaps-key-input" placeholder="AIzaSy..." style="padding-right: 80px;">
+          <button onclick="toggleKeyVisibility()" class="btn btn-ghost" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); height:28px; font-size:10px;" id="toggle-key-btn">mostrar</button>
+        </div>
+      </div>
+
+      <!-- APIs needed info -->
+      <div class="card" style="padding: var(--space-4); background: var(--surface-overlay);">
+        <div class="text-xs text-mono text-subtle mb-3" style="text-transform: uppercase; letter-spacing: 0.1em;">APIs necessárias no projeto GCP</div>
+        <div class="flex-col gap-2">
+          <div class="flex items-center gap-3">
+            <div class="status-dot operational"></div>
+            <div class="text-xs text-dim">Places API — autocomplete de endereços</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="status-dot operational"></div>
+            <div class="text-xs text-dim">Directions API — rotas e tempo de trajeto</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="status-dot operational"></div>
+            <div class="text-xs text-dim">Distance Matrix API — tráfego em tempo real</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status indicator -->
+      <div id="maps-status-card" style="display:none;" class="card" style="padding: var(--space-4);">
+        <div class="flex items-center gap-3">
+          <div class="status-dot" id="maps-status-dot"></div>
+          <div class="text-sm" id="maps-status-text"></div>
+        </div>
+      </div>
+
+      <!-- Error checklist (shown on failure) -->
+      <div id="maps-error-checklist" style="display:none;">
+        <div class="card" style="padding: var(--space-4); border-color: rgba(220,38,38,0.2);">
+          <div class="text-xs text-mono mb-3" style="color: var(--color-error); text-transform:uppercase; letter-spacing:0.1em;">Verifique estes pontos</div>
+          <div class="flex-col gap-2">
+            <div class="flex items-start gap-2 text-xs text-dim">
+              <span style="color:var(--color-warning);flex-shrink:0;">1.</span>
+              <span><strong style="color:var(--color-zinc-300);">Faturamento ativo</strong> — O GCP exige cartão cadastrado mesmo no plano gratuito. <span style="color:var(--color-accent-glow);">console.cloud.google.com/billing</span></span>
+            </div>
+            <div class="flex items-start gap-2 text-xs text-dim">
+              <span style="color:var(--color-warning);flex-shrink:0;">2.</span>
+              <span><strong style="color:var(--color-zinc-300);">Places API ativada</strong> — APIs e Serviços → Biblioteca → buscar "Places API" → Ativar</span>
+            </div>
+            <div class="flex items-start gap-2 text-xs text-dim">
+              <span style="color:var(--color-warning);flex-shrink:0;">3.</span>
+              <span><strong style="color:var(--color-zinc-300);">Directions API ativada</strong> — mesma tela, buscar "Directions API" → Ativar</span>
+            </div>
+            <div class="flex items-start gap-2 text-xs text-dim">
+              <span style="color:var(--color-warning);flex-shrink:0;">4.</span>
+              <span><strong style="color:var(--color-zinc-300);">Sem restrições de domínio</strong> — Credenciais → editar a key → "Restrições de aplicativo" → Nenhuma</span>
+            </div>
+            <div class="flex items-start gap-2 text-xs text-dim">
+              <span style="color:var(--color-warning);flex-shrink:0;">5.</span>
+              <span><strong style="color:var(--color-zinc-300);">Aguarde 2–5 minutos</strong> após ativar as APIs pela primeira vez</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button class="btn btn-primary" onclick="salvarApiKey()" style="flex:1; justify-content: center;">
+          Conectar e testar
+        </button>
+        <button class="btn btn-secondary" onclick="limparApiKey()">
+          Remover key
+        </button>
+      </div>
+
+      <div class="divider" style="margin: 0;"></div>
+
+      <div class="text-xs text-subtle" style="line-height: 1.7;">
+        <strong style="color: var(--color-zinc-400);">Como obter a key:</strong><br>
+        1. Acesse <span class="text-accent text-mono">console.cloud.google.com</span><br>
+        2. Crie um projeto → Ative as 3 APIs acima<br>
+        3. Gere uma API Key em "Credenciais"<br>
+        4. Recomende restringir a key ao seu domínio
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toasts"></div>
+
+<script>// ============================================================
+// TRANSIT — Core State & Config
+// ============================================================
+const S = {
+  routes: [], salary: 0, activeTab: 'dashboard',
+  simIdx: 0, editingId: null
+};
+
+const TC = {
+  carro:     { emoji:'🚗', name:'Carro',        factor:1.0,  travelMode:'DRIVING'   },
+  metro:     { emoji:'🚇', name:'Metrô/Ônibus', factor:0.75, travelMode:'TRANSIT'   },
+  bike:      { emoji:'🚲', name:'Bike',          factor:0.4,  travelMode:'BICYCLING' },
+  caminhada: { emoji:'🚶', name:'A pé',          factor:0.2,  travelMode:'WALKING'   },
+  app:       { emoji:'📱', name:'App (Uber/99)', factor:1.1,  travelMode:'DRIVING'   }
+};
+
+// ── MATH ──────────────────────────────────────────────────────
+function metricas(r) {
+  const minDia = (parseFloat(r.tempo)||0) * 2;
+  const dias   = parseInt(r.dias)||5;
+  const vh     = (r.salario||0) / (r.horasMes||160);
+  const cpm    = vh / 60;
+  const minMes = minDia * dias * 4.3;
+  const minAno = minDia * dias * 52;
+  return {
+    minDia, minMes, minAno,
+    custoMes: minMes * cpm,
+    custoAno: minAno * cpm,
+    custoDirMes: (parseFloat(r.custoDireto)||0) * dias * 4.3,
+    pct: r.salario ? (minMes * cpm / r.salario * 100) : 0,
+    diasVida: minAno / 60 / 24,
+    horasAno: minAno / 60,
+    vh
+  };
+}
+
+function fTempo(min) {
+  if (!min) return '—';
+  const h = Math.floor(min/60), m = Math.round(min%60);
+  return h === 0 ? `${m}min` : m === 0 ? `${h}h` : `${h}h${m}min`;
+}
+function fBRL(v) {
+  if (!v || isNaN(v)) return '—';
+  return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+function fK(v) {
+  if (!v || isNaN(v)) return 'R$ 0';
+  return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+}
+
+// ── STORAGE ───────────────────────────────────────────────────
+function load() {
+  try {
+    const r = localStorage.getItem('tr_routes');
+    if (r) S.routes = JSON.parse(r);
+    const s = localStorage.getItem('tr_salary');
+    if (s) S.salary = parseFloat(s);
+  } catch(e){}
+}
+function save() {
+  try {
+    localStorage.setItem('tr_routes', JSON.stringify(S.routes));
+    localStorage.setItem('tr_salary', S.salary);
+  } catch(e){}
+}
+
+// ── TABS ──────────────────────────────────────────────────────
+function showTab(tab) {
+  S.activeTab = tab;
+  document.querySelectorAll('.sidebar-item').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('onclick')?.includes(`'${tab}'`));
+  });
+  document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+  const hasRoutes = S.routes.length > 0;
+  document.getElementById('landing-view').style.display = hasRoutes ? 'none' : 'block';
+  if (!hasRoutes) return;
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.style.display = 'block';
+  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'trajetos')  renderTrajetos();
+  if (tab === 'simulador') renderSimulador();
+  if (tab === 'insights')  renderInsights();
+}
+
+// ── MODAL ─────────────────────────────────────────────────────
+function openModal(editId = null) {
+  S.editingId = editId;
+  document.getElementById('modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  // reset
+  ['form-origem','form-destino','form-tempo','form-distancia'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('form-horario').value = '08:00';
+  document.getElementById('form-dias').value = 5;
+  document.getElementById('form-horas-mes').value = 160;
+  document.getElementById('custo-direto-form').style.display = 'none';
+  document.getElementById('preview-card').style.display = 'none';
+  document.getElementById('route-result-box')?.remove();
+  document.querySelectorAll('.transport-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector('[data-mode="carro"]').classList.add('selected');
+  if (S.salary) document.getElementById('form-salario').value = S.salary;
+
+  if (editId !== null) {
+    const r = S.routes[editId];
+    if (r) {
+      document.getElementById('form-origem').value    = r.origem    || '';
+      document.getElementById('form-destino').value   = r.destino   || '';
+      document.getElementById('form-horario').value   = r.horario   || '08:00';
+      document.getElementById('form-dias').value      = r.dias      || 5;
+      document.getElementById('form-salario').value   = r.salario   || '';
+      document.getElementById('form-horas-mes').value = r.horasMes  || 160;
+      document.getElementById('form-tempo').value     = r.tempo     || '';
+      document.getElementById('form-distancia').value = r.distancia || '';
+      if (r.custoDireto) {
+        document.getElementById('form-custo-direto').value = r.custoDireto;
+        document.getElementById('form-custo-tipo').value   = r.custoTipo || 'outro';
+        document.getElementById('custo-direto-form').style.display = 'block';
+      }
+      document.querySelectorAll('.transport-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.mode === r.transporte);
+      });
+    }
+  }
+  updateValorHora();
+  previewCalculo();
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+  document.body.style.overflow = '';
+  hideDD('origem'); hideDD('destino');
+}
+function handleModalOverlayClick(e) { if (e.target.id === 'modal') closeModal(); }
+
+function selectTransport(btn) {
+  document.querySelectorAll('.transport-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  previewCalculo();
+  const o = document.getElementById('form-origem').value.trim();
+  const d = document.getElementById('form-destino').value.trim();
+  if (o && d) calcularTempo();
+}
+
+function toggleCustoDireto() {
+  const f = document.getElementById('custo-direto-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function updateValorHora() {
+  const sal  = parseFloat(document.getElementById('form-salario').value)   || 0;
+  const hrs  = parseFloat(document.getElementById('form-horas-mes').value) || 160;
+  const vh   = sal / hrs;
+  const prev = document.getElementById('valor-hora-preview');
+  if (sal > 0) {
+    document.getElementById('valor-hora-display').textContent = fBRL(vh) + '/h';
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+  previewCalculo();
+}
+
+function previewCalculo() {
+  const tempo  = parseFloat(document.getElementById('form-tempo').value);
+  const sal    = parseFloat(document.getElementById('form-salario').value);
+  const horas  = parseFloat(document.getElementById('form-horas-mes').value) || 160;
+  const dias   = parseInt(document.getElementById('form-dias').value) || 5;
+  const card   = document.getElementById('preview-card');
+  if (!tempo || !sal) { card.style.display = 'none'; return; }
+  const mock   = { tempo, salario: sal, horasMes: horas, dias, custoDireto: 0 };
+  const m      = metricas(mock);
+  document.getElementById('preview-grid').innerHTML = `
+    <div><div class="text-xs text-subtle text-mono mb-1">TEMPO/DIA</div>
+         <div class="text-accent text-mono" style="font-size:var(--text-lg)">${fTempo(m.minDia)}</div></div>
+    <div><div class="text-xs text-subtle text-mono mb-1">CUSTO/MÊS</div>
+         <div class="text-warning text-mono" style="font-size:var(--text-lg)">${fK(m.custoMes)}</div></div>
+    <div><div class="text-xs text-subtle text-mono mb-1">CUSTO/ANO</div>
+         <div class="text-error text-mono" style="font-size:var(--text-lg)">${fK(m.custoAno)}</div></div>`;
+  card.style.display = 'block';
+}
+
+function salvarTrajeto() {
+  const origem  = document.getElementById('form-origem').value.trim();
+  const destino = document.getElementById('form-destino').value.trim();
+  const tempo   = parseFloat(document.getElementById('form-tempo').value);
+  const salario = parseFloat(document.getElementById('form-salario').value);
+  if (!origem || !destino) { toast('Preencha origem e destino', 'error'); return; }
+  if (!tempo || tempo <= 0) { toast('Informe o tempo estimado do trajeto', 'error'); return; }
+  if (!salario || salario <= 0) { toast('Informe seu salário mensal', 'error'); return; }
+  const transporte = document.querySelector('.transport-btn.selected')?.dataset?.mode || 'carro';
+  const route = {
+    id: Date.now(), origem, destino, transporte,
+    horario:    document.getElementById('form-horario').value,
+    dias:       parseInt(document.getElementById('form-dias').value)     || 5,
+    salario,
+    horasMes:   parseFloat(document.getElementById('form-horas-mes').value) || 160,
+    tempo,
+    distancia:  parseFloat(document.getElementById('form-distancia').value) || 0,
+    custoDireto:parseFloat(document.getElementById('form-custo-direto').value) || 0,
+    custoTipo:  document.getElementById('form-custo-tipo').value,
+  };
+  if (S.editingId !== null) { S.routes[S.editingId] = route; toast('Trajeto atualizado!'); }
+  else { S.routes.push(route); toast('Trajeto salvo!'); }
+  S.salary = salario;
+  save(); closeModal(); showTab('dashboard');
+}
+
+function deletarTrajeto(idx) {
+  if (!confirm('Remover este trajeto?')) return;
+  S.routes.splice(idx, 1); save();
+  if (S.routes.length === 0) showTab('dashboard');
+  else renderTrajetos();
+}
+
+// ── GOOGLE MAPS STATE ─────────────────────────────────────────
+let gmKey       = '';
+let gmReady     = false;
+let acTimers    = {};
+let acCache     = {};
+let placeIds    = { origem: null, destino: null };
+
+// ── API SETTINGS MODAL ────────────────────────────────────────
+function openApiSettings() {
+  document.getElementById('modal-api').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  const saved = localStorage.getItem('gm_key') || '';
+  document.getElementById('gmaps-key-input').value = saved;
+  if (saved) setMapStatus('idle');
+}
+function closeApiSettings() {
+  document.getElementById('modal-api').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function toggleKeyVisibility() {
+  const i = document.getElementById('gmaps-key-input');
+  const b = document.getElementById('toggle-key-btn');
+  i.type = i.type === 'password' ? 'text' : 'password';
+  b.textContent = i.type === 'password' ? 'mostrar' : 'ocultar';
+}
+function limparApiKey() {
+  localStorage.removeItem('gm_key');
+  gmKey = ''; gmReady = false;
+  document.getElementById('gmaps-key-input').value = '';
+  document.getElementById('maps-btn-label').textContent = 'Conectar Google Maps';
+  document.getElementById('api-status').className = 'badge badge-accent badge-dot badge-live';
+  document.getElementById('api-status').textContent = '✦ IA ativa';
+  document.getElementById('gm-sdk')?.remove();
+  setMapStatus('removed');
+  toast('Google Maps desconectado. Usando IA como fallback.');
+}
+async function salvarApiKey() {
+  const key = document.getElementById('gmaps-key-input').value.trim();
+  if (!key.startsWith('AIza')) { toast('Key inválida (deve começar com AIza)', 'error'); return; }
+  gmKey = key;
+  localStorage.setItem('gm_key', key);
+  setMapStatus('testing');
+  await loadGMSDK(key);
+}
+function setMapStatus(s) {
+  const card = document.getElementById('maps-status-card');
+  const dot  = document.getElementById('maps-status-dot');
+  const txt  = document.getElementById('maps-status-text');
+  const map  = {
+    testing: ['degraded',    'Carregando SDK do Google Maps...'],
+    ok:      ['operational', '✓ Google Maps conectado com sucesso'],
+    error:   ['down',        '✕ Falha. Verifique key e APIs ativadas no GCP.'],
+    idle:    ['pending',     'Key salva — clique em "Conectar e testar"'],
+    removed: ['pending',     'Key removida. Usando Claude IA como fallback.'],
+  };
+  const [cls, msg] = map[s] || map.idle;
+  card.style.display = 'block';
+  dot.className = 'status-dot ' + cls;
+  txt.textContent = msg;
+  if (s === 'error') {
+    document.getElementById('maps-error-checklist').style.display = 'block';
+  }
+}
+
+// ── LOAD GOOGLE MAPS SDK ──────────────────────────────────────
+function loadGMSDK(key) {
+  return new Promise((resolve, reject) => {
+    document.getElementById('gm-sdk')?.remove();
+    gmReady = false;
+
+    const cb = '__gmcb' + Date.now();
+    window[cb] = () => {
+      delete window[cb];
+      // quick validation geocode
+      new google.maps.Geocoder().geocode({ address: 'São Paulo, Brasil' }, (r, s) => {
+        if (s === 'OK') {
+          gmReady = true;
+          setMapStatus('ok');
+          document.getElementById('maps-btn-label').textContent = '✓ Google Maps ativo';
+          document.getElementById('api-status').className = 'badge badge-success badge-dot badge-live';
+          document.getElementById('api-status').textContent = 'Google Maps + IA';
+          toast('Google Maps conectado! Rotas reais e tráfego em tempo real ativados.');
+          resolve();
+        } else {
+          setMapStatus('error');
+          toast('Key inválida ou APIs não ativadas no GCP.', 'error');
+          reject(new Error(s));
+        }
+      });
+    };
+
+    const sc = document.createElement('script');
+    sc.id  = 'gm-sdk';
+    sc.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&language=pt-BR&region=BR&callback=${cb}`;
+    sc.async = true;
+    sc.onerror = () => {
+      delete window[cb];
+      setMapStatus('error');
+      toast('Falha ao carregar SDK. Verifique se a key tem restrições de domínio.', 'error');
+      reject(new Error('load failed'));
+    };
+    document.head.appendChild(sc);
+  });
+}
+
+// ── AUTOCOMPLETE ──────────────────────────────────────────────
+function hideDD(f) {
+  const d = document.getElementById('dropdown-' + f);
+  if (d) d.style.display = 'none';
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.autocomplete-wrap')) { hideDD('origem'); hideDD('destino'); }
+});
+
+function handleAutocomplete(field, val) {
+  hideDD(field);
+  if (!val || val.length < 3) return;
+  clearTimeout(acTimers[field]);
+  acTimers[field] = setTimeout(() => doAC(field, val), 380);
+}
+
+async function doAC(field, val) {
+  const ck = (gmReady ? 'gm:' : 'ai:') + field + ':' + val.toLowerCase();
+  if (acCache[ck]) { renderDD(field, acCache[ck]); return; }
+  showDDLoading(field);
+  if (gmReady) {
+    new google.maps.places.AutocompleteService().getPlacePredictions(
+      { input: val, componentRestrictions: { country: 'BR' }, language: 'pt-BR' },
+      (preds, st) => {
+        if (st !== 'OK' || !preds) { doACai(field, val, ck); return; }
+        const items = preds.slice(0,6).map(p => ({
+          nome: p.description,
+          tipo: p.types?.includes('locality') ? 'cidade' : p.types?.includes('route') ? 'endereço' : 'poi',
+          placeId: p.place_id, src: 'gm'
+        }));
+        acCache[ck] = items; renderDD(field, items);
+      }
+    );
+  } else {
+    await doACai(field, val, ck);
+  }
+}
+
+async function doACai(field, val, ck) {
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:400,
+        messages:[{role:'user', content:`Sugira 5 locais reais no Brasil para: "${val}". SOMENTE JSON:\n{"lugares":[{"nome":"Local, Bairro, Cidade - UF","tipo":"cidade|bairro|endereço|poi"}]}`}]
+      })
+    });
+    const d = await r.json();
+    const parsed = JSON.parse((d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+    const items = (parsed.lugares||[]).map(l => ({...l, src:'ai'}));
+    acCache[ck] = items; renderDD(field, items);
+  } catch { hideDD(field); }
+}
+
+function showDDLoading(f) {
+  const d = document.getElementById('dropdown-' + f);
+  d.innerHTML = `<div class="autocomplete-item" style="cursor:default;color:var(--color-zinc-600)"><span class="icon">⏳</span>Buscando...</div>`;
+  d.style.display = 'block';
+}
+
+function renderDD(field, items) {
+  const d = document.getElementById('dropdown-' + field);
+  if (!items?.length) { d.style.display = 'none'; return; }
+  const ic = { cidade:'🏙', bairro:'🏘', endereço:'📍', poi:'🏢' };
+  d.innerHTML = items.map(l => {
+    const safe = l.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div class="autocomplete-item" onclick="pickAC('${field}','${safe}','${l.placeId||''}')">
+      <span class="icon">${ic[l.tipo]||'📍'}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.nome}</span>
+      <span style="font-size:9px;font-family:var(--font-mono);color:${l.src==='gm'?'var(--color-success)':'var(--color-accent-glow)'};flex-shrink:0">${l.src==='gm'?'Maps':'IA'}</span>
+    </div>`;
+  }).join('');
+  d.style.display = 'block';
+}
+
+function pickAC(field, val, pid) {
+  document.getElementById('form-' + field).value = val;
+  placeIds[field] = pid || null;
+  hideDD(field);
+  const o = document.getElementById('form-origem').value;
+  const d = document.getElementById('form-destino').value;
+  if (o && d) calcularTempo();
+}
+
+// ── ROUTE CALCULATION ─────────────────────────────────────────
+async function calcularTempo() {
+  const origem  = document.getElementById('form-origem').value.trim();
+  const destino = document.getElementById('form-destino').value.trim();
+  if (!origem || !destino) { toast('Preencha origem e destino primeiro', 'error'); return; }
+
+  document.getElementById('route-result-box')?.remove();
+  document.getElementById('tempo-loading').style.display = 'block';
+  const btn = document.getElementById('btn-calcular');
+  btn.disabled = true; btn.textContent = 'Calculando...';
+
+  try {
+    if (gmReady) {
+      try { await routeGM(origem, destino); }
+      catch(e) {
+        console.warn('GM route failed:', e.message, '— falling back to AI');
+        await routeAI(origem, destino);
+      }
+    } else {
+      await routeAI(origem, destino);
+    }
+  } catch(e) {
+    toast('Erro ao calcular. Insira o tempo manualmente.', 'error');
+  } finally {
+    document.getElementById('tempo-loading').style.display = 'none';
+    btn.disabled = false; btn.textContent = 'Recalcular rota';
+  }
+}
+
+function recalcOnHorarioChange() {
+  const o = document.getElementById('form-origem').value.trim();
+  const d = document.getElementById('form-destino').value.trim();
+  if (o && d) calcularTempo();
+}
+
+// ── GOOGLE MAPS DIRECTIONS ────────────────────────────────────
+function routeGM(origem, destino) {
+  return new Promise((resolve, reject) => {
+    const mode = document.querySelector('.transport-btn.selected')?.dataset?.mode || 'carro';
+    const hor  = document.getElementById('form-horario').value || '08:00';
+    const [h, m] = hor.split(':').map(Number);
+    const dep = new Date();
+    dep.setHours(h, m, 0, 0);
+    if (dep < new Date()) dep.setDate(dep.getDate() + 1);
+
+    const req = {
+      origin:      placeIds.origem  ? { placeId: placeIds.origem  } : origem,
+      destination: placeIds.destino ? { placeId: placeIds.destino } : destino,
+      travelMode:  TC[mode]?.travelMode || 'DRIVING',
+      region: 'BR', language: 'pt-BR',
+      provideRouteAlternatives: true
+    };
+    if (mode === 'carro' || mode === 'app') {
+      req.drivingOptions = { departureTime: dep, trafficModel: 'bestguess' };
+    }
+    if (mode === 'metro') {
+      req.transitOptions = { departureTime: dep };
+    }
+
+    new google.maps.DirectionsService().route(req, (res, st) => {
+      if (st !== 'OK') { reject(new Error('Directions: ' + st)); return; }
+      const leg  = res.routes[0].legs[0];
+      const dur  = (leg.duration_in_traffic?.value ?? leg.duration.value);
+      const base = leg.duration.value;
+      const dist = leg.distance.value;
+      const tMin = Math.round(dur / 60);
+      const bMin = Math.round(base / 60);
+      const dKm  = parseFloat((dist / 1000).toFixed(1));
+      const ratio = dur / base;
+      const traf  = ratio > 1.4 ? 'alta' : ratio > 1.15 ? 'média' : 'baixa';
+      const extra = tMin - bMin;
+      const via   = res.routes[0].summary || '';
+
+      document.getElementById('form-tempo').value     = tMin;
+      document.getElementById('form-distancia').value = dKm;
+
+      showRouteBox({
+        src:'gm', tempo:tMin, base:bMin, dist:dKm, traf,
+        extra, via, alts:res.routes.length,
+        endA:leg.start_address, endB:leg.end_address
+      });
+      previewCalculo();
+      resolve();
+    });
+  });
+}
+
+// ── AI ROUTE ESTIMATION ───────────────────────────────────────
+async function routeAI(origem, destino) {
+  const mode = document.querySelector('.transport-btn.selected')?.dataset?.mode || 'carro';
+  const hor  = document.getElementById('form-horario').value || '08:00';
+  const [h]  = hor.split(':').map(Number);
+  const labels = { carro:'carro', metro:'transporte público', bike:'bicicleta', caminhada:'a pé', app:'Uber/99' };
+  const rush = h>=6&&h<=9?'rush manhã': h>=17&&h<=20?'rush tarde': h>=11&&h<=14?'almoço':'fora do pico';
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:400,
+      messages:[{role:'user', content:`Trajeto no Brasil.\nOrigem: ${origem}\nDestino: ${destino}\nTransporte: ${labels[mode]}\nHorário: ${hor} (${rush})\nSOMENTE JSON:\n{"tempoMin":45,"tempoComTraffic":60,"distKm":30,"via":"Rodovia X","traf":"média"}`}]
+    })
+  });
+  const d = await res.json();
+  const j = JSON.parse((d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
+  const tMin = Math.round(j.tempoComTraffic || j.tempoMin || 30);
+  const dKm  = parseFloat((j.distKm||0).toFixed(1));
+  document.getElementById('form-tempo').value     = tMin;
+  document.getElementById('form-distancia').value = dKm;
+  showRouteBox({ src:'ai', tempo:tMin, base:j.tempoMin, dist:dKm, traf:j.traf, via:j.via });
+  previewCalculo();
+}
+
+// ── ROUTE RESULT BOX ──────────────────────────────────────────
+function showRouteBox(r) {
+  document.getElementById('route-result-box')?.remove();
+  const isGM = r.src === 'gm';
+  const trafColor = { alta:'var(--color-error)', média:'var(--color-warning)', baixa:'var(--color-success)' }[r.traf] || 'var(--color-zinc-500)';
+  const box = document.createElement('div');
+  box.id = 'route-result-box';
+  box.innerHTML = `
+    <div style="background:${isGM?'rgba(22,163,74,.06)':'var(--color-accent-tint)'};border:1px solid ${isGM?'rgba(22,163,74,.25)':'rgba(99,102,241,.2)'};border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4)">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          ${isGM
+            ? `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#16A34A"/></svg><span class="text-xs text-mono text-success">Google Maps</span>`
+            : `<span class="text-xs text-mono text-accent">✦ Claude IA</span>`}
+        </div>
+        <div class="flex items-center gap-2">
+          ${r.alts > 1 ? `<span class="badge badge-default">${r.alts} rotas</span>` : ''}
+          <span class="badge ${isGM?'badge-success':'badge-accent'}">${isGM?'✓ Dados reais':'~ Estimativa'}</span>
+        </div>
+      </div>
+      ${r.via ? `<div class="text-xs text-subtle mb-2">Via ${r.via}${r.extra > 0 ? ` · +${r.extra} min de tráfego` : ''}</div>` : ''}
+      ${r.endA ? `<div class="text-xs text-subtle"><span class="text-mono" style="color:var(--color-zinc-700)">DE</span> ${r.endA}</div>
+                  <div class="text-xs text-subtle"><span class="text-mono" style="color:var(--color-zinc-700)">ATÉ</span> ${r.endB}</div>` : ''}
+      ${r.traf ? `<div class="flex items-center gap-2 mt-2">
+        <span class="text-xs text-subtle text-mono">Tráfego:</span>
+        <span class="text-xs text-mono" style="color:${trafColor};font-weight:500">${r.traf.toUpperCase()}</span>
+      </div>` : ''}
+    </div>`;
+  document.getElementById('tempo-resultado').prepend(box);
+  toast(`${isGM?'🗺 Google Maps':'✦ IA'}: ${r.tempo} min · ${r.dist} km`);
+}
+
+// ── RENDER DASHBOARD ──────────────────────────────────────────
+function renderDashboard() {
+  if (!S.routes.length) return;
+  let totMin=0, totMes=0, totAno=0, totDirMes=0, totHorasAno=0, totSal=0, totMinMes=0;
+  S.routes.forEach(r => {
+    const m = metricas(r);
+    totMin += m.minDia; totMes += m.custoMes; totAno += m.custoAno;
+    totDirMes += m.custoDirMes; totHorasAno += m.horasAno;
+    totSal += r.salario; totMinMes += m.minMes;
+  });
+  const avgSal  = totSal / S.routes.length;
+  const pct     = avgSal ? totMes / avgSal * 100 : 0;
+  const diasVida = totHorasAno / 24;
+
+  document.getElementById('hero-custo-anual').textContent = fK(totAno);
+  document.getElementById('hero-horas-ano').textContent   = Math.round(totHorasAno) + 'h';
+  document.getElementById('hero-pct').textContent         = pct.toFixed(1) + '%';
+  document.getElementById('hero-dias').textContent        = diasVida.toFixed(1) + 'd';
+  document.getElementById('hero-divider').style.display   = 'block';
+  document.getElementById('hero-right').style.display     = 'block';
+  document.getElementById('stat-tempo-dia').textContent   = fTempo(totMin);
+  document.getElementById('stat-tempo-mes').textContent   = fTempo(totMinMes);
+  document.getElementById('stat-custo-mes').textContent   = fK(totMes);
+  document.getElementById('stat-custo-ano').textContent   = fK(totAno);
+
+  const lr = S.routes[S.routes.length - 1];
+  document.getElementById('sidebar-valor-hora').textContent = fBRL(lr.salario / lr.horasMes) + '/h';
+
+  if (totDirMes > 0) {
+    document.getElementById('custo-direto-section').style.display = 'block';
+    document.getElementById('custo-tempo-mes-dir').textContent = fK(totMes);
+    document.getElementById('custo-direto-mes').textContent    = fK(totDirMes);
+    document.getElementById('custo-total-mes').textContent     = fK(totMes + totDirMes);
+  }
+
+  document.getElementById('quick-insight-card').style.display = 'block';
+  document.getElementById('quick-insight-text').innerHTML =
+    `Você passa <strong>${fTempo(totMin)}</strong> por dia no trânsito — equivalente a <strong>${fK(totMes)}/mês</strong> do seu tempo (<strong>${pct.toFixed(1)}% do salário</strong>). Em um ano isso representa <strong>${diasVida.toFixed(1)} dias da sua vida</strong>.`;
+
+  // charts
+  const days = ['Seg','Ter','Qua','Qui','Sex'];
+  const vars = [1.0, 1.1, 0.95, 1.05, 1.15];
+  document.getElementById('chart-tempo-body').innerHTML = days.map((d,i) => {
+    const h = totMin * vars[i]; const px = h / (totMin * 1.3) * 100;
+    return `<div class="chart-bar-wrap"><div class="chart-bar ${i===4?'highlight':''}" style="height:${px}%" title="${fTempo(h)}"></div><div class="chart-bar-label">${d}</div></div>`;
+  }).join('');
+
+  const sw = ['S1','S2','S3','S4','S5'], sv = [0.22,0.44,0.66,0.88,1.0];
+  document.getElementById('chart-custo-body').innerHTML = sw.map((s,i) =>
+    `<div class="chart-bar-wrap"><div class="chart-bar ${i===4?'highlight':''}" style="height:${sv[i]*100}%" title="${fK(totMes*sv[i])}"></div><div class="chart-bar-label">${s}</div></div>`
+  ).join('');
+}
+
+// ── RENDER TRAJETOS ───────────────────────────────────────────
+function renderTrajetos() {
+  const list  = document.getElementById('trajetos-list');
+  const empty = document.getElementById('trajetos-empty');
+  if (!S.routes.length) { list.innerHTML=''; empty.style.display='flex'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = S.routes.map((r,i) => {
+    const m = metricas(r); const tc = TC[r.transporte] || TC.carro;
+    return `<div class="route-item">
+      <div class="route-icon">${tc.emoji}</div>
+      <div class="route-info">
+        <div class="route-name">${r.origem} → ${r.destino}</div>
+        <div class="route-meta">${tc.name} · ${r.dias}×/sem · ${fTempo(m.minDia)}/dia${r.custoDireto ? ` · ${fBRL(r.custoDireto)}/dia direto` : ''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="route-cost">${fK(m.custoMes)}/mês</div>
+        <div class="text-subtle text-xs text-mono mt-1">${fK(m.custoAno)}/ano</div>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost" onclick="openModal(${i})">✏️</button>
+        <button class="btn btn-danger" onclick="deletarTrajeto(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER SIMULADOR ──────────────────────────────────────────
+function renderSimulador() {
+  const noR = document.getElementById('simulador-no-routes');
+  const cont = document.getElementById('simulador-content');
+  if (!S.routes.length) { noR.style.display='flex'; cont.style.display='none'; return; }
+  noR.style.display = 'none'; cont.style.display = 'block';
+
+  const r   = S.routes[S.simIdx] || S.routes[0];
+  const m   = metricas(r);
+
+  document.getElementById('sim-route-selector').innerHTML = S.routes.map((rt,i) =>
+    `<div class="simulator-option ${i===S.simIdx?'active':''}" onclick="S.simIdx=${i};renderSimulador()">
+      <div class="simulator-icon">${TC[rt.transporte]?.emoji||'🚗'}</div>
+      <div class="simulator-info">
+        <div class="simulator-name">${rt.origem} → ${rt.destino}</div>
+        <div class="simulator-time">${TC[rt.transporte]?.name} · ${fTempo(metricas(rt).minDia)}/dia</div>
+      </div>
+    </div>`
+  ).join('');
+
+  document.getElementById('sim-compare-grid').innerHTML = Object.entries(TC).map(([k,tc]) => {
+    const alt = metricas({ ...r, transporte:k, tempo: r.tempo / (TC[k].factor / TC[r.transporte||'carro'].factor) });
+    const diff = alt.custoMes - m.custoMes;
+    const isCur = k === r.transporte;
+    return `<div class="card ${isCur?'accent':''}">
+      <div class="flex items-center gap-3 mb-4">
+        <div style="font-size:24px">${tc.emoji}</div>
+        <div>
+          <div class="text-sm font-medium ${isCur?'text-white':''}">${tc.name}</div>
+          ${isCur?'<span class="badge badge-accent" style="margin-top:2px">Atual</span>':''}
+        </div>
+      </div>
+      <div class="grid-2" style="gap:var(--space-3)">
+        <div><div class="text-xs text-subtle text-mono mb-1">TEMPO/DIA</div>
+             <div class="text-mono ${isCur?'text-accent':'text-white'}" style="font-size:var(--text-lg);font-weight:300">${fTempo(alt.minDia)}</div></div>
+        <div><div class="text-xs text-subtle text-mono mb-1">CUSTO/MÊS</div>
+             <div class="text-mono ${isCur?'text-accent':'text-white'}" style="font-size:var(--text-lg);font-weight:300">${fK(alt.custoMes)}</div></div>
+      </div>
+      ${!isCur?`<div class="mt-4 text-xs text-mono ${diff>0?'text-error':'text-success'}">${diff>0?'↑':'↓'} ${fK(Math.abs(diff))}/mês vs atual</div>`:''}
+    </div>`;
+  }).join('');
+
+  const eco30mes = (30*2*(r.dias*4.3)) * (m.vh/60);
+  document.getElementById('sim-savings-card').style.display = 'block';
+  document.getElementById('sim-eco-mes').textContent   = fK(eco30mes);
+  document.getElementById('sim-eco-ano').textContent   = fK(eco30mes*12);
+  document.getElementById('sim-horas-rec').textContent = Math.round(30*2*r.dias*52/60) + 'h';
+}
+
+// ── RENDER INSIGHTS ───────────────────────────────────────────
+function renderInsights() {
+  const noR = document.getElementById('insights-no-routes');
+  const cont = document.getElementById('insights-content');
+  if (!S.routes.length) { noR.style.display='flex'; cont.style.display='none'; return; }
+  noR.style.display = 'none'; cont.style.display = 'block';
+
+  const all  = S.routes.map(r => ({ r, m: metricas(r) }));
+  const totMinMes  = all.reduce((s,x) => s + x.m.minMes, 0);
+  const totAno     = all.reduce((s,x) => s + x.m.custoAno, 0);
+  const totHoras   = all.reduce((s,x) => s + x.m.horasAno, 0);
+  const totMes     = all.reduce((s,x) => s + x.m.custoMes, 0);
+  const avgSal     = all.reduce((s,x) => s + x.r.salario, 0) / all.length;
+  const pct        = avgSal ? totMes / avgSal * 100 : 0;
+  const diasVida   = totHoras / 24;
+
+  document.getElementById('insights-list').innerHTML = [
+    { icon:'⏱', type:'purple', html:`Você passa <strong>${fTempo(totMinMes)}</strong> por mês no trânsito — ${(totMinMes/60/8).toFixed(1)} jornadas de trabalho completas.` },
+    { icon:'💰', type:'orange', html:`Isso vale <strong>${fK(totMes)}/mês</strong> em tempo de vida. Por ano: <strong>${fK(totAno)}</strong> investidos em deslocamento.` },
+    { icon:'📊', type:'red',    html:`O trânsito consome <strong>${pct.toFixed(1)}% do seu salário</strong>. Você trabalha ~${(pct/100*22).toFixed(1)} dias por mês só "pagando" o trajeto com tempo.` },
+    { icon:'📅', type:'green',  html:`Em um ano serão <strong>${diasVida.toFixed(1)} dias completos</strong> (${Math.round(totHoras)}h) exclusivamente se deslocando — ${(diasVida/365*100).toFixed(1)}% do seu ano.` },
+  ].map(i => `<div class="insight-card"><div class="insight-icon ${i.type}">${i.icon}</div><div class="insight-text">${i.html}</div></div>`).join('');
+
+  document.getElementById('insights-table').innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Trajeto</th><th>Transporte</th><th>Tempo/Dia</th><th>Custo/Mês</th><th>Custo/Ano</th><th>% Salário</th></tr></thead>
+      <tbody>${all.map(({r,m}) => `
+        <tr>
+          <td>${r.origem} → ${r.destino}</td>
+          <td><span class="badge badge-default">${TC[r.transporte]?.emoji} ${TC[r.transporte]?.name}</span></td>
+          <td class="mono">${fTempo(m.minDia)}</td>
+          <td class="mono">${fK(m.custoMes)}</td>
+          <td class="mono">${fK(m.custoAno)}</td>
+          <td class="mono"><span style="color:${m.pct>15?'var(--color-error)':m.pct>8?'var(--color-warning)':'var(--color-success)'}">${m.pct.toFixed(1)}%</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<span style="font-size:16px">${type==='success'?'✓':'✕'}</span><div><div class="toast-title">${msg}</div></div>`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+load();
+if (S.routes.length) {
+  document.getElementById('landing-view').style.display = 'none';
+  showTab('dashboard');
+} else {
+  document.getElementById('landing-view').style.display = 'block';
+  document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+}
+
+// Auto-restore saved GM key
+(async () => {
+  const k = localStorage.getItem('gm_key');
+  if (k) { gmKey = k; try { await loadGMSDK(k); } catch(e) {} }
+})();
+</script>
+</body>
+</html>
