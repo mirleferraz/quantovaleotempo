@@ -1077,15 +1077,15 @@ a { color: inherit; text-decoration: none; }
         <div class="flex-col gap-2">
           <div class="flex items-center gap-3">
             <div class="status-dot operational"></div>
+            <div class="text-xs text-dim">Maps JavaScript API — SDK principal (obrigatória)</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="status-dot operational"></div>
             <div class="text-xs text-dim">Places API — autocomplete de endereços</div>
           </div>
           <div class="flex items-center gap-3">
             <div class="status-dot operational"></div>
-            <div class="text-xs text-dim">Directions API — rotas e tempo de trajeto</div>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="status-dot operational"></div>
-            <div class="text-xs text-dim">Distance Matrix API — tráfego em tempo real</div>
+            <div class="text-xs text-dim">Directions API — rotas e tráfego em tempo real</div>
           </div>
         </div>
       </div>
@@ -1109,18 +1109,22 @@ a { color: inherit; text-decoration: none; }
             </div>
             <div class="flex items-start gap-2 text-xs text-dim">
               <span style="color:var(--color-warning);flex-shrink:0;">2.</span>
-              <span><strong style="color:var(--color-zinc-300);">Places API ativada</strong> — APIs e Serviços → Biblioteca → buscar "Places API" → Ativar</span>
+              <span><strong style="color:var(--color-zinc-300);">Maps JavaScript API ativada</strong> — APIs e Serviços → Biblioteca → buscar "Maps JavaScript API" → Ativar</span>
             </div>
             <div class="flex items-start gap-2 text-xs text-dim">
               <span style="color:var(--color-warning);flex-shrink:0;">3.</span>
-              <span><strong style="color:var(--color-zinc-300);">Directions API ativada</strong> — mesma tela, buscar "Directions API" → Ativar</span>
+              <span><strong style="color:var(--color-zinc-300);">Places API ativada</strong> — mesma tela, buscar "Places API" → Ativar</span>
             </div>
             <div class="flex items-start gap-2 text-xs text-dim">
               <span style="color:var(--color-warning);flex-shrink:0;">4.</span>
-              <span><strong style="color:var(--color-zinc-300);">Sem restrições de domínio</strong> — Credenciais → editar a key → "Restrições de aplicativo" → Nenhuma</span>
+              <span><strong style="color:var(--color-zinc-300);">Directions API ativada</strong> — mesma tela, buscar "Directions API" → Ativar</span>
             </div>
             <div class="flex items-start gap-2 text-xs text-dim">
               <span style="color:var(--color-warning);flex-shrink:0;">5.</span>
+              <span><strong style="color:var(--color-zinc-300);">Sem restrições de domínio</strong> — Credenciais → editar a key → "Restrições de aplicativo" → Nenhuma</span>
+            </div>
+            <div class="flex items-start gap-2 text-xs text-dim">
+              <span style="color:var(--color-warning);flex-shrink:0;">6.</span>
               <span><strong style="color:var(--color-zinc-300);">Aguarde 2–5 minutos</strong> após ativar as APIs pela primeira vez</span>
             </div>
           </div>
@@ -1144,6 +1148,38 @@ a { color: inherit; text-decoration: none; }
         2. Crie um projeto → Ative as 3 APIs acima<br>
         3. Gere uma API Key em "Credenciais"<br>
         4. Recomende restringir a key ao seu domínio
+      </div>
+
+      <div class="divider" style="margin: 0;"></div>
+
+      <!-- Anthropic API Key -->
+      <div class="modal-title" style="font-size: 1rem; margin-bottom: 0;">Configurar IA (Anthropic)</div>
+      <div class="modal-desc" style="margin-top: 4px; margin-bottom: 0;">
+        Chave necessária para autocomplete e estimativa de rota via IA. Obtenha em <span class="text-accent text-mono">console.anthropic.com</span>.
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">🤖 Anthropic API Key</label>
+        <div style="position: relative;">
+          <input type="password" class="input" id="anthropic-key-input" placeholder="sk-ant-..." style="padding-right: 80px;">
+          <button onclick="toggleAnthropicKeyVisibility()" class="btn btn-ghost" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); height:28px; font-size:10px;" id="toggle-anthropic-key-btn">mostrar</button>
+        </div>
+      </div>
+
+      <div id="anthropic-status-card" style="display:none;" class="card" style="padding: var(--space-4);">
+        <div class="flex items-center gap-3">
+          <div class="status-dot" id="anthropic-status-dot"></div>
+          <div class="text-sm" id="anthropic-status-text"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button class="btn btn-primary" onclick="salvarAnthropicKey()" style="flex:1; justify-content: center;">
+          Salvar chave Anthropic
+        </button>
+        <button class="btn btn-secondary" onclick="limparAnthropicKey()">
+          Remover
+        </button>
       </div>
     </div>
   </div>
@@ -1401,6 +1437,9 @@ function openApiSettings() {
   const saved = localStorage.getItem('gm_key') || '';
   document.getElementById('gmaps-key-input').value = saved;
   if (saved) setMapStatus('idle');
+  const savedAnth = localStorage.getItem('anthropic_key') || '';
+  document.getElementById('anthropic-key-input').value = savedAnth;
+  if (savedAnth) setAnthropicStatus('ok');
 }
 function closeApiSettings() {
   document.getElementById('modal-api').style.display = 'none';
@@ -1431,6 +1470,40 @@ async function salvarApiKey() {
   setMapStatus('testing');
   await loadGMSDK(key);
 }
+function toggleAnthropicKeyVisibility() {
+  const i = document.getElementById('anthropic-key-input');
+  const b = document.getElementById('toggle-anthropic-key-btn');
+  i.type = i.type === 'password' ? 'text' : 'password';
+  b.textContent = i.type === 'password' ? 'mostrar' : 'ocultar';
+}
+function salvarAnthropicKey() {
+  const key = document.getElementById('anthropic-key-input').value.trim();
+  if (!key.startsWith('sk-ant-')) { toast('Key inválida (deve começar com sk-ant-)', 'error'); return; }
+  localStorage.setItem('anthropic_key', key);
+  setAnthropicStatus('ok');
+  toast('Chave Anthropic salva com sucesso.');
+}
+function limparAnthropicKey() {
+  localStorage.removeItem('anthropic_key');
+  document.getElementById('anthropic-key-input').value = '';
+  setAnthropicStatus('removed');
+  toast('Chave Anthropic removida.');
+}
+function setAnthropicStatus(s) {
+  const card = document.getElementById('anthropic-status-card');
+  const dot  = document.getElementById('anthropic-status-dot');
+  const txt  = document.getElementById('anthropic-status-text');
+  const map  = {
+    ok:      ['operational', '✓ Chave Anthropic configurada'],
+    removed: ['pending',     'Chave removida. IA desativada.'],
+    error:   ['down',        '✕ Chave inválida.'],
+  };
+  const [cls, msg] = map[s] || map.ok;
+  card.style.display = 'block';
+  dot.className = 'status-dot ' + cls;
+  txt.textContent = msg;
+}
+
 function setMapStatus(s) {
   const card = document.getElementById('maps-status-card');
   const dot  = document.getElementById('maps-status-dot');
@@ -1460,22 +1533,26 @@ function loadGMSDK(key) {
     const cb = '__gmcb' + Date.now();
     window[cb] = () => {
       delete window[cb];
-      // quick validation geocode
-      new google.maps.Geocoder().geocode({ address: 'São Paulo, Brasil' }, (r, s) => {
-        if (s === 'OK') {
-          gmReady = true;
-          setMapStatus('ok');
-          document.getElementById('maps-btn-label').textContent = '✓ Google Maps ativo';
-          document.getElementById('api-status').className = 'badge badge-success badge-dot badge-live';
-          document.getElementById('api-status').textContent = 'Google Maps + IA';
-          toast('Google Maps conectado! Rotas reais e tráfego em tempo real ativados.');
-          resolve();
-        } else {
-          setMapStatus('error');
-          toast('Key inválida ou APIs não ativadas no GCP.', 'error');
-          reject(new Error(s));
+      // validate Places API (autocomplete)
+      new google.maps.places.AutocompleteService().getPlacePredictions(
+        { input: 'São Paulo', componentRestrictions: { country: 'BR' } },
+        (r, s) => {
+          if (s === 'OK' || s === 'ZERO_RESULTS') {
+            gmReady = true;
+            setMapStatus('ok');
+            document.getElementById('maps-btn-label').textContent = '✓ Google Maps ativo';
+            document.getElementById('api-status').className = 'badge badge-success badge-dot badge-live';
+            document.getElementById('api-status').textContent = 'Google Maps + IA';
+            toast('Google Maps conectado! Rotas reais e tráfego em tempo real ativados.');
+            resolve();
+          } else {
+            setMapStatus('error');
+            document.getElementById('maps-error-checklist').style.display = 'block';
+            toast('Key inválida ou APIs não ativadas no GCP.', 'error');
+            reject(new Error(s));
+          }
         }
-      });
+      );
     };
 
     const sc = document.createElement('script');
@@ -1531,10 +1608,17 @@ async function doAC(field, val) {
 }
 
 async function doACai(field, val, ck) {
+  const anthKey = localStorage.getItem('anthropic_key');
+  if (!anthKey) { hideDD(field); return; }
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:400,
+      method:'POST', headers:{
+        'Content-Type':'application/json',
+        'x-api-key': anthKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:400,
         messages:[{role:'user', content:`Sugira 5 locais reais no Brasil para: "${val}". SOMENTE JSON:\n{"lugares":[{"nome":"Local, Bairro, Cidade - UF","tipo":"cidade|bairro|endereço|poi"}]}`}]
       })
     });
@@ -1670,9 +1754,16 @@ async function routeAI(origem, destino) {
   const labels = { carro:'carro', metro:'transporte público', bike:'bicicleta', caminhada:'a pé', app:'Uber/99' };
   const rush = h>=6&&h<=9?'rush manhã': h>=17&&h<=20?'rush tarde': h>=11&&h<=14?'almoço':'fora do pico';
 
+  const anthKey = localStorage.getItem('anthropic_key');
+  if (!anthKey) throw new Error('Chave Anthropic não configurada');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:400,
+    method:'POST', headers:{
+      'Content-Type':'application/json',
+      'x-api-key': anthKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:400,
       messages:[{role:'user', content:`Trajeto no Brasil.\nOrigem: ${origem}\nDestino: ${destino}\nTransporte: ${labels[mode]}\nHorário: ${hor} (${rush})\nSOMENTE JSON:\n{"tempoMin":45,"tempoComTraffic":60,"distKm":30,"via":"Rodovia X","traf":"média"}`}]
     })
   });
