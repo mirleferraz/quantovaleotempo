@@ -1237,25 +1237,39 @@ function showTab(tab) {
 }
 
 // ── MODAL ─────────────────────────────────────────────────────
-function openModal(editId = null) {
-  S.editingId = editId;
-  document.getElementById('modal').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  // reset
-  ['form-origem','form-destino','form-tempo','form-distancia'].forEach(id => {
+function resetModal() {
+  // Always wipe every field completely before filling
+  ['form-origem','form-destino','form-tempo','form-distancia',
+   'form-salario','form-custo-direto'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  document.getElementById('form-horario').value = '08:00';
-  document.getElementById('form-dias').value = 5;
-  document.getElementById('form-horas-mes').value = 160;
+  document.getElementById('form-horario').value    = '08:00';
+  document.getElementById('form-dias').value       = '5';
+  document.getElementById('form-horas-mes').value  = '160';
+  document.getElementById('form-custo-tipo').value = 'passagem';
+
+  // Clear UI state
   document.getElementById('custo-direto-form').style.display = 'none';
-  document.getElementById('preview-card').style.display = 'none';
+  document.getElementById('preview-card').style.display      = 'none';
+  document.getElementById('valor-hora-preview').style.display = 'none';
   document.getElementById('route-result-box')?.remove();
+  hideDD('origem'); hideDD('destino');
+
+  // Reset transport to carro
   document.querySelectorAll('.transport-btn').forEach(b => b.classList.remove('selected'));
   document.querySelector('[data-mode="carro"]').classList.add('selected');
-  if (S.salary) document.getElementById('form-salario').value = S.salary;
+
+  // Reset stored place IDs so previous autocomplete selections don't bleed over
+  placeIds.origem  = null;
+  placeIds.destino = null;
+}
+
+function openModal(editId = null) {
+  S.editingId = editId;
+  resetModal();
 
   if (editId !== null) {
+    // EDITING: fill with saved route data
     const r = S.routes[editId];
     if (r) {
       document.getElementById('form-origem').value    = r.origem    || '';
@@ -1275,7 +1289,13 @@ function openModal(editId = null) {
         b.classList.toggle('selected', b.dataset.mode === r.transporte);
       });
     }
+  } else {
+    // NEW: only pre-fill salary if previously saved
+    if (S.salary) document.getElementById('form-salario').value = S.salary;
   }
+
+  document.getElementById('modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
   updateValorHora();
   previewCalculo();
 }
@@ -1283,7 +1303,7 @@ function openModal(editId = null) {
 function closeModal() {
   document.getElementById('modal').style.display = 'none';
   document.body.style.overflow = '';
-  hideDD('origem'); hideDD('destino');
+  resetModal();
 }
 function handleModalOverlayClick(e) { if (e.target.id === 'modal') closeModal(); }
 
