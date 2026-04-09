@@ -923,12 +923,12 @@ a { color: inherit; text-decoration: none; }
       <div class="input-row">
         <div class="input-group autocomplete-wrap">
           <label class="input-label">📍 Local de partida</label>
-          <input type="text" class="input" id="form-origem" placeholder="Ex: Campinas, SP" autocomplete="off" oninput="handleAutocomplete('origem', this.value)">
+          <input type="text" class="input" id="form-origem" placeholder="Endereço, cidade ou CEP" autocomplete="off" oninput="handleAutocomplete('origem', this.value)">
           <div class="autocomplete-dropdown" id="dropdown-origem" style="display:none;"></div>
         </div>
         <div class="input-group autocomplete-wrap">
           <label class="input-label">🏁 Local de chegada</label>
-          <input type="text" class="input" id="form-destino" placeholder="Ex: São Paulo, SP" autocomplete="off" oninput="handleAutocomplete('destino', this.value)">
+          <input type="text" class="input" id="form-destino" placeholder="Endereço, cidade ou CEP" autocomplete="off" oninput="handleAutocomplete('destino', this.value)">
           <div class="autocomplete-dropdown" id="dropdown-destino" style="display:none;"></div>
         </div>
       </div>
@@ -948,19 +948,23 @@ a { color: inherit; text-decoration: none; }
       <!-- HORÁRIO + DIAS -->
       <div class="input-row">
         <div class="input-group">
-          <label class="input-label">🕐 Horário de partida</label>
+          <label class="input-label">🌅 Horário de saída (ida)</label>
           <input type="time" class="input" id="form-horario" value="08:00" onchange="recalcOnHorarioChange()">
         </div>
         <div class="input-group">
-          <label class="input-label">📅 Dias por semana</label>
-          <select class="select" id="form-dias">
-            <option value="5">5 dias (seg–sex)</option>
-            <option value="4">4 dias</option>
-            <option value="3">3 dias</option>
-            <option value="2">2 dias</option>
-            <option value="1">1 dia</option>
-          </select>
+          <label class="input-label">🌆 Horário de saída (volta)</label>
+          <input type="time" class="input" id="form-horario-volta" value="18:00" onchange="recalcOnHorarioChange()">
         </div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">📅 Dias por semana</label>
+        <select class="select" id="form-dias">
+          <option value="5">5 dias (seg–sex)</option>
+          <option value="4">4 dias</option>
+          <option value="3">3 dias</option>
+          <option value="2">2 dias</option>
+          <option value="1">1 dia</option>
+        </select>
       </div>
 
       <!-- SALÁRIO -->
@@ -991,20 +995,34 @@ a { color: inherit; text-decoration: none; }
         </div>
         <div id="tempo-loading" style="display:none;">
           <div class="loading-bar"><div class="loading-bar-fill"></div></div>
-          <div class="text-xs text-subtle mt-2">Estimando duração...</div>
+          <div class="text-xs text-subtle mt-2">Calculando ida e volta...</div>
         </div>
         <div id="tempo-resultado">
           <div class="input-row">
             <div class="input-group">
-              <label class="input-label">Minutos (ida)</label>
-              <input type="number" class="input" id="form-tempo" placeholder="Ex: 45" min="1" max="480" oninput="previewCalculo()">
+              <label class="input-label">Minutos — ida</label>
+              <input type="number" class="input" id="form-tempo" placeholder="Ex: 45" min="1" max="480" oninput="syncTempoTotal()">
             </div>
             <div class="input-group">
-              <label class="input-label">Distância (km)</label>
-              <input type="number" class="input" id="form-distancia" placeholder="Ex: 30" min="0" step="0.5" oninput="previewCalculo()">
+              <label class="input-label">Minutos — volta</label>
+              <input type="number" class="input" id="form-tempo-volta" placeholder="Ex: 55" min="1" max="480" oninput="syncTempoTotal()">
             </div>
           </div>
-          <div class="text-xs text-subtle mt-2">Ida + volta é calculado automaticamente</div>
+          <!-- Total diário calculado -->
+          <div id="tempo-total-preview" style="display:none; margin-top:var(--space-3); padding:var(--space-3) var(--space-4); background:var(--surface-overlay); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between;">
+            <span class="text-xs text-subtle text-mono">TOTAL POR DIA (ida + volta)</span>
+            <span class="text-accent text-mono" style="font-size:var(--text-md); font-weight:300;" id="tempo-total-value">—</span>
+          </div>
+          <div class="input-row" style="margin-top:var(--space-3);">
+            <div class="input-group">
+              <label class="input-label">Distância ida (km)</label>
+              <input type="number" class="input" id="form-distancia" placeholder="Ex: 30" min="0" step="0.5" oninput="previewCalculo()">
+            </div>
+            <div class="input-group">
+              <label class="input-label">Distância volta (km)</label>
+              <input type="number" class="input" id="form-distancia-volta" placeholder="Ex: 30" min="0" step="0.5" oninput="previewCalculo()">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1077,15 +1095,15 @@ a { color: inherit; text-decoration: none; }
         <div class="flex-col gap-2">
           <div class="flex items-center gap-3">
             <div class="status-dot operational"></div>
-            <div class="text-xs text-dim">Maps JavaScript API — SDK principal (obrigatória)</div>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="status-dot operational"></div>
             <div class="text-xs text-dim">Places API — autocomplete de endereços</div>
           </div>
           <div class="flex items-center gap-3">
             <div class="status-dot operational"></div>
-            <div class="text-xs text-dim">Directions API — rotas e tráfego em tempo real</div>
+            <div class="text-xs text-dim">Directions API — rotas e tempo de trajeto</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="status-dot operational"></div>
+            <div class="text-xs text-dim">Distance Matrix API — tráfego em tempo real</div>
           </div>
         </div>
       </div>
@@ -1109,22 +1127,18 @@ a { color: inherit; text-decoration: none; }
             </div>
             <div class="flex items-start gap-2 text-xs text-dim">
               <span style="color:var(--color-warning);flex-shrink:0;">2.</span>
-              <span><strong style="color:var(--color-zinc-300);">Maps JavaScript API ativada</strong> — APIs e Serviços → Biblioteca → buscar "Maps JavaScript API" → Ativar</span>
+              <span><strong style="color:var(--color-zinc-300);">Places API ativada</strong> — APIs e Serviços → Biblioteca → buscar "Places API" → Ativar</span>
             </div>
             <div class="flex items-start gap-2 text-xs text-dim">
               <span style="color:var(--color-warning);flex-shrink:0;">3.</span>
-              <span><strong style="color:var(--color-zinc-300);">Places API ativada</strong> — mesma tela, buscar "Places API" → Ativar</span>
-            </div>
-            <div class="flex items-start gap-2 text-xs text-dim">
-              <span style="color:var(--color-warning);flex-shrink:0;">4.</span>
               <span><strong style="color:var(--color-zinc-300);">Directions API ativada</strong> — mesma tela, buscar "Directions API" → Ativar</span>
             </div>
             <div class="flex items-start gap-2 text-xs text-dim">
-              <span style="color:var(--color-warning);flex-shrink:0;">5.</span>
+              <span style="color:var(--color-warning);flex-shrink:0;">4.</span>
               <span><strong style="color:var(--color-zinc-300);">Sem restrições de domínio</strong> — Credenciais → editar a key → "Restrições de aplicativo" → Nenhuma</span>
             </div>
             <div class="flex items-start gap-2 text-xs text-dim">
-              <span style="color:var(--color-warning);flex-shrink:0;">6.</span>
+              <span style="color:var(--color-warning);flex-shrink:0;">5.</span>
               <span><strong style="color:var(--color-zinc-300);">Aguarde 2–5 minutos</strong> após ativar as APIs pela primeira vez</span>
             </div>
           </div>
@@ -1148,38 +1162,6 @@ a { color: inherit; text-decoration: none; }
         2. Crie um projeto → Ative as 3 APIs acima<br>
         3. Gere uma API Key em "Credenciais"<br>
         4. Recomende restringir a key ao seu domínio
-      </div>
-
-      <div class="divider" style="margin: 0;"></div>
-
-      <!-- Anthropic API Key -->
-      <div class="modal-title" style="font-size: 1rem; margin-bottom: 0;">Configurar IA (Anthropic)</div>
-      <div class="modal-desc" style="margin-top: 4px; margin-bottom: 0;">
-        Chave necessária para autocomplete e estimativa de rota via IA. Obtenha em <span class="text-accent text-mono">console.anthropic.com</span>.
-      </div>
-
-      <div class="input-group">
-        <label class="input-label">🤖 Anthropic API Key</label>
-        <div style="position: relative;">
-          <input type="password" class="input" id="anthropic-key-input" placeholder="sk-ant-..." style="padding-right: 80px;">
-          <button onclick="toggleAnthropicKeyVisibility()" class="btn btn-ghost" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); height:28px; font-size:10px;" id="toggle-anthropic-key-btn">mostrar</button>
-        </div>
-      </div>
-
-      <div id="anthropic-status-card" style="display:none;" class="card" style="padding: var(--space-4);">
-        <div class="flex items-center gap-3">
-          <div class="status-dot" id="anthropic-status-dot"></div>
-          <div class="text-sm" id="anthropic-status-text"></div>
-        </div>
-      </div>
-
-      <div class="flex gap-3">
-        <button class="btn btn-primary" onclick="salvarAnthropicKey()" style="flex:1; justify-content: center;">
-          Salvar chave Anthropic
-        </button>
-        <button class="btn btn-secondary" onclick="limparAnthropicKey()">
-          Remover
-        </button>
       </div>
     </div>
   </div>
@@ -1206,20 +1188,23 @@ const TC = {
 
 // ── MATH ──────────────────────────────────────────────────────
 function metricas(r) {
-  const minDia = (parseFloat(r.tempo)||0) * 2;
-  const dias   = parseInt(r.dias)||5;
-  const vh     = (r.salario||0) / (r.horasMes||160);
-  const cpm    = vh / 60;
-  const minMes = minDia * dias * 4.3;
-  const minAno = minDia * dias * 52;
+  const minIda    = parseFloat(r.tempo)       || 0;
+  // If volta time was saved, use it; otherwise mirror the ida (legacy routes)
+  const minVolta  = parseFloat(r.tempoVolta)  || minIda;
+  const minDia    = minIda + minVolta;          // real ida + real volta
+  const dias      = parseInt(r.dias)           || 5;
+  const vh        = (r.salario||0) / (r.horasMes||160);
+  const cpm       = vh / 60;
+  const minMes    = minDia * dias * 4.3;
+  const minAno    = minDia * dias * 52;
   return {
-    minDia, minMes, minAno,
-    custoMes: minMes * cpm,
-    custoAno: minAno * cpm,
+    minIda, minVolta, minDia, minMes, minAno,
+    custoMes:    minMes * cpm,
+    custoAno:    minAno * cpm,
     custoDirMes: (parseFloat(r.custoDireto)||0) * dias * 4.3,
-    pct: r.salario ? (minMes * cpm / r.salario * 100) : 0,
-    diasVida: minAno / 60 / 24,
-    horasAno: minAno / 60,
+    pct:         r.salario ? (minMes * cpm / r.salario * 100) : 0,
+    diasVida:    minAno / 60 / 24,
+    horasAno:    minAno / 60,
     vh
   };
 }
@@ -1274,28 +1259,27 @@ function showTab(tab) {
 
 // ── MODAL ─────────────────────────────────────────────────────
 function resetModal() {
-  // Always wipe every field completely before filling
-  ['form-origem','form-destino','form-tempo','form-distancia',
+  ['form-origem','form-destino','form-tempo','form-tempo-volta',
+   'form-distancia','form-distancia-volta',
    'form-salario','form-custo-direto'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  document.getElementById('form-horario').value    = '08:00';
-  document.getElementById('form-dias').value       = '5';
-  document.getElementById('form-horas-mes').value  = '160';
-  document.getElementById('form-custo-tipo').value = 'passagem';
+  document.getElementById('form-horario').value       = '08:00';
+  document.getElementById('form-horario-volta').value = '18:00';
+  document.getElementById('form-dias').value          = '5';
+  document.getElementById('form-horas-mes').value     = '160';
+  document.getElementById('form-custo-tipo').value    = 'passagem';
 
-  // Clear UI state
-  document.getElementById('custo-direto-form').style.display = 'none';
-  document.getElementById('preview-card').style.display      = 'none';
-  document.getElementById('valor-hora-preview').style.display = 'none';
+  document.getElementById('custo-direto-form').style.display   = 'none';
+  document.getElementById('preview-card').style.display        = 'none';
+  document.getElementById('valor-hora-preview').style.display  = 'none';
+  document.getElementById('tempo-total-preview').style.display = 'none';
   document.getElementById('route-result-box')?.remove();
   hideDD('origem'); hideDD('destino');
 
-  // Reset transport to carro
   document.querySelectorAll('.transport-btn').forEach(b => b.classList.remove('selected'));
   document.querySelector('[data-mode="carro"]').classList.add('selected');
 
-  // Reset stored place IDs so previous autocomplete selections don't bleed over
   placeIds.origem  = null;
   placeIds.destino = null;
 }
@@ -1305,17 +1289,19 @@ function openModal(editId = null) {
   resetModal();
 
   if (editId !== null) {
-    // EDITING: fill with saved route data
     const r = S.routes[editId];
     if (r) {
-      document.getElementById('form-origem').value    = r.origem    || '';
-      document.getElementById('form-destino').value   = r.destino   || '';
-      document.getElementById('form-horario').value   = r.horario   || '08:00';
-      document.getElementById('form-dias').value      = r.dias      || 5;
-      document.getElementById('form-salario').value   = r.salario   || '';
-      document.getElementById('form-horas-mes').value = r.horasMes  || 160;
-      document.getElementById('form-tempo').value     = r.tempo     || '';
-      document.getElementById('form-distancia').value = r.distancia || '';
+      document.getElementById('form-origem').value         = r.origem         || '';
+      document.getElementById('form-destino').value        = r.destino        || '';
+      document.getElementById('form-horario').value        = r.horario        || '08:00';
+      document.getElementById('form-horario-volta').value  = r.horarioVolta   || '18:00';
+      document.getElementById('form-dias').value           = r.dias           || 5;
+      document.getElementById('form-salario').value        = r.salario        || '';
+      document.getElementById('form-horas-mes').value      = r.horasMes       || 160;
+      document.getElementById('form-tempo').value          = r.tempo          || '';
+      document.getElementById('form-tempo-volta').value    = r.tempoVolta     || '';
+      document.getElementById('form-distancia').value      = r.distancia      || '';
+      document.getElementById('form-distancia-volta').value= r.distanciaVolta || '';
       if (r.custoDireto) {
         document.getElementById('form-custo-direto').value = r.custoDireto;
         document.getElementById('form-custo-tipo').value   = r.custoTipo || 'outro';
@@ -1324,9 +1310,9 @@ function openModal(editId = null) {
       document.querySelectorAll('.transport-btn').forEach(b => {
         b.classList.toggle('selected', b.dataset.mode === r.transporte);
       });
+      syncTempoTotal();
     }
   } else {
-    // NEW: only pre-fill salary if previously saved
     if (S.salary) document.getElementById('form-salario').value = S.salary;
   }
 
@@ -1371,22 +1357,47 @@ function updateValorHora() {
   previewCalculo();
 }
 
+// Show the real-time total (ida + volta) below the two time fields
+function syncTempoTotal() {
+  const ida   = parseFloat(document.getElementById('form-tempo').value)       || 0;
+  const volta = parseFloat(document.getElementById('form-tempo-volta').value) || 0;
+  const box   = document.getElementById('tempo-total-preview');
+  if (ida > 0 || volta > 0) {
+    const total = ida + (volta || ida); // if volta not yet filled, mirror ida
+    document.getElementById('tempo-total-value').textContent = fTempo(total) + '/dia';
+    box.style.display = 'flex';
+  } else {
+    box.style.display = 'none';
+  }
+  previewCalculo();
+}
+
 function previewCalculo() {
-  const tempo  = parseFloat(document.getElementById('form-tempo').value);
-  const sal    = parseFloat(document.getElementById('form-salario').value);
-  const horas  = parseFloat(document.getElementById('form-horas-mes').value) || 160;
-  const dias   = parseInt(document.getElementById('form-dias').value) || 5;
-  const card   = document.getElementById('preview-card');
+  const tempo      = parseFloat(document.getElementById('form-tempo').value)       || 0;
+  const tempoVolta = parseFloat(document.getElementById('form-tempo-volta').value) || 0;
+  const sal        = parseFloat(document.getElementById('form-salario').value);
+  const horas      = parseFloat(document.getElementById('form-horas-mes').value)   || 160;
+  const dias       = parseInt(document.getElementById('form-dias').value)          || 5;
+  const card       = document.getElementById('preview-card');
   if (!tempo || !sal) { card.style.display = 'none'; return; }
-  const mock   = { tempo, salario: sal, horasMes: horas, dias, custoDireto: 0 };
-  const m      = metricas(mock);
+  // Use real volta if provided, otherwise mirror ida (user hasn't filled it yet)
+  const mock = { tempo, tempoVolta: tempoVolta || tempo, salario: sal, horasMes: horas, dias, custoDireto: 0 };
+  const m    = metricas(mock);
+  const voltaLabel = tempoVolta ? `${tempo}min ida · ${tempoVolta}min volta` : `${tempo}min ida (volta estimada igual)`;
   document.getElementById('preview-grid').innerHTML = `
-    <div><div class="text-xs text-subtle text-mono mb-1">TEMPO/DIA</div>
-         <div class="text-accent text-mono" style="font-size:var(--text-lg)">${fTempo(m.minDia)}</div></div>
-    <div><div class="text-xs text-subtle text-mono mb-1">CUSTO/MÊS</div>
-         <div class="text-warning text-mono" style="font-size:var(--text-lg)">${fK(m.custoMes)}</div></div>
-    <div><div class="text-xs text-subtle text-mono mb-1">CUSTO/ANO</div>
-         <div class="text-error text-mono" style="font-size:var(--text-lg)">${fK(m.custoAno)}</div></div>`;
+    <div>
+      <div class="text-xs text-subtle text-mono mb-1">TEMPO/DIA</div>
+      <div class="text-accent text-mono" style="font-size:var(--text-lg)">${fTempo(m.minDia)}</div>
+      <div class="text-xs text-subtle text-mono mt-1">${voltaLabel}</div>
+    </div>
+    <div>
+      <div class="text-xs text-subtle text-mono mb-1">CUSTO/MÊS</div>
+      <div class="text-warning text-mono" style="font-size:var(--text-lg)">${fK(m.custoMes)}</div>
+    </div>
+    <div>
+      <div class="text-xs text-subtle text-mono mb-1">CUSTO/ANO</div>
+      <div class="text-error text-mono" style="font-size:var(--text-lg)">${fK(m.custoAno)}</div>
+    </div>`;
   card.style.display = 'block';
 }
 
@@ -1396,19 +1407,25 @@ function salvarTrajeto() {
   const tempo   = parseFloat(document.getElementById('form-tempo').value);
   const salario = parseFloat(document.getElementById('form-salario').value);
   if (!origem || !destino) { toast('Preencha origem e destino', 'error'); return; }
-  if (!tempo || tempo <= 0) { toast('Informe o tempo estimado do trajeto', 'error'); return; }
+  if (!tempo || tempo <= 0) { toast('Informe o tempo estimado da ida', 'error'); return; }
   if (!salario || salario <= 0) { toast('Informe seu salário mensal', 'error'); return; }
+
+  const tempoVolta = parseFloat(document.getElementById('form-tempo-volta').value) || tempo;
+
   const transporte = document.querySelector('.transport-btn.selected')?.dataset?.mode || 'carro';
   const route = {
     id: Date.now(), origem, destino, transporte,
-    horario:    document.getElementById('form-horario').value,
-    dias:       parseInt(document.getElementById('form-dias').value)     || 5,
+    horario:         document.getElementById('form-horario').value,
+    horarioVolta:    document.getElementById('form-horario-volta').value,
+    dias:            parseInt(document.getElementById('form-dias').value)          || 5,
     salario,
-    horasMes:   parseFloat(document.getElementById('form-horas-mes').value) || 160,
+    horasMes:        parseFloat(document.getElementById('form-horas-mes').value)   || 160,
     tempo,
-    distancia:  parseFloat(document.getElementById('form-distancia').value) || 0,
-    custoDireto:parseFloat(document.getElementById('form-custo-direto').value) || 0,
-    custoTipo:  document.getElementById('form-custo-tipo').value,
+    tempoVolta,
+    distancia:       parseFloat(document.getElementById('form-distancia').value)       || 0,
+    distanciaVolta:  parseFloat(document.getElementById('form-distancia-volta').value) || 0,
+    custoDireto:     parseFloat(document.getElementById('form-custo-direto').value)    || 0,
+    custoTipo:       document.getElementById('form-custo-tipo').value,
   };
   if (S.editingId !== null) { S.routes[S.editingId] = route; toast('Trajeto atualizado!'); }
   else { S.routes.push(route); toast('Trajeto salvo!'); }
@@ -1437,9 +1454,6 @@ function openApiSettings() {
   const saved = localStorage.getItem('gm_key') || '';
   document.getElementById('gmaps-key-input').value = saved;
   if (saved) setMapStatus('idle');
-  const savedAnth = localStorage.getItem('anthropic_key') || '';
-  document.getElementById('anthropic-key-input').value = savedAnth;
-  if (savedAnth) setAnthropicStatus('ok');
 }
 function closeApiSettings() {
   document.getElementById('modal-api').style.display = 'none';
@@ -1470,40 +1484,6 @@ async function salvarApiKey() {
   setMapStatus('testing');
   await loadGMSDK(key);
 }
-function toggleAnthropicKeyVisibility() {
-  const i = document.getElementById('anthropic-key-input');
-  const b = document.getElementById('toggle-anthropic-key-btn');
-  i.type = i.type === 'password' ? 'text' : 'password';
-  b.textContent = i.type === 'password' ? 'mostrar' : 'ocultar';
-}
-function salvarAnthropicKey() {
-  const key = document.getElementById('anthropic-key-input').value.trim();
-  if (!key.startsWith('sk-ant-')) { toast('Key inválida (deve começar com sk-ant-)', 'error'); return; }
-  localStorage.setItem('anthropic_key', key);
-  setAnthropicStatus('ok');
-  toast('Chave Anthropic salva com sucesso.');
-}
-function limparAnthropicKey() {
-  localStorage.removeItem('anthropic_key');
-  document.getElementById('anthropic-key-input').value = '';
-  setAnthropicStatus('removed');
-  toast('Chave Anthropic removida.');
-}
-function setAnthropicStatus(s) {
-  const card = document.getElementById('anthropic-status-card');
-  const dot  = document.getElementById('anthropic-status-dot');
-  const txt  = document.getElementById('anthropic-status-text');
-  const map  = {
-    ok:      ['operational', '✓ Chave Anthropic configurada'],
-    removed: ['pending',     'Chave removida. IA desativada.'],
-    error:   ['down',        '✕ Chave inválida.'],
-  };
-  const [cls, msg] = map[s] || map.ok;
-  card.style.display = 'block';
-  dot.className = 'status-dot ' + cls;
-  txt.textContent = msg;
-}
-
 function setMapStatus(s) {
   const card = document.getElementById('maps-status-card');
   const dot  = document.getElementById('maps-status-dot');
@@ -1527,46 +1507,121 @@ function setMapStatus(s) {
 // ── LOAD GOOGLE MAPS SDK ──────────────────────────────────────
 function loadGMSDK(key) {
   return new Promise((resolve, reject) => {
+    // Remove any previous SDK instance entirely
     document.getElementById('gm-sdk')?.remove();
+    // If google.maps already exists from a prior load, nuke it so we reload cleanly
+    if (window.google) { try { delete window.google; } catch(e) {} }
     gmReady = false;
 
     const cb = '__gmcb' + Date.now();
     window[cb] = () => {
       delete window[cb];
-      // validate Places API (autocomplete)
-      new google.maps.places.AutocompleteService().getPlacePredictions(
-        { input: 'São Paulo', componentRestrictions: { country: 'BR' } },
-        (r, s) => {
-          if (s === 'OK' || s === 'ZERO_RESULTS') {
-            gmReady = true;
-            setMapStatus('ok');
-            document.getElementById('maps-btn-label').textContent = '✓ Google Maps ativo';
-            document.getElementById('api-status').className = 'badge badge-success badge-dot badge-live';
-            document.getElementById('api-status').textContent = 'Google Maps + IA';
-            toast('Google Maps conectado! Rotas reais e tráfego em tempo real ativados.');
-            resolve();
-          } else {
-            setMapStatus('error');
-            document.getElementById('maps-error-checklist').style.display = 'block';
-            toast('Key inválida ou APIs não ativadas no GCP.', 'error');
-            reject(new Error(s));
+      // Validate with AutocompleteService (requires Places API — the one we actually need)
+      try {
+        const svc = new google.maps.places.AutocompleteService();
+        svc.getPlacePredictions(
+          { input: 'São Paulo', componentRestrictions: { country: 'BR' } },
+          (preds, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && preds?.length) {
+              gmReady = true;
+              setMapStatus('ok');
+              document.getElementById('maps-btn-label').textContent = '✓ Google Maps ativo';
+              document.getElementById('api-status').className = 'badge badge-success badge-dot badge-live';
+              document.getElementById('api-status').textContent = 'Google Maps + IA';
+              toast('Google Maps conectado! Rotas e tráfego em tempo real ativados.');
+              resolve();
+            } else {
+              setMapStatus('error');
+              toast('Places API não ativada ou key inválida.', 'error');
+              reject(new Error('Places: ' + status));
+            }
           }
-        }
-      );
+        );
+      } catch(e) {
+        setMapStatus('error');
+        toast('Erro ao inicializar Google Maps: ' + e.message, 'error');
+        reject(e);
+      }
     };
 
     const sc = document.createElement('script');
-    sc.id  = 'gm-sdk';
-    sc.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&language=pt-BR&region=BR&callback=${cb}`;
+    sc.id    = 'gm-sdk';
+    // loading=async is the recommended modern param; v=weekly gets latest stable
+    sc.src   = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places,directions&v=weekly&language=pt-BR&region=BR&loading=async&callback=${cb}`;
     sc.async = true;
     sc.onerror = () => {
       delete window[cb];
       setMapStatus('error');
-      toast('Falha ao carregar SDK. Verifique se a key tem restrições de domínio.', 'error');
-      reject(new Error('load failed'));
+      toast('Falha ao carregar SDK. Key pode ter restrição de domínio ou estar inválida.', 'error');
+      reject(new Error('SDK load failed'));
     };
     document.head.appendChild(sc);
   });
+}
+
+// ── CEP UTILITIES ─────────────────────────────────────────────
+
+function extractCEP(val) {
+  const d = val.replace(/\D/g, '');
+  return d.length === 8 ? d : null;
+}
+
+function formatCEPInput(val) {
+  const d = val.replace(/\D/g, '').slice(0, 8);
+  return d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d;
+}
+
+// Try ViaCEP first, fall back to BrasilAPI if it fails or returns erro
+async function resolveCEP(cep) {
+  let data = null;
+
+  // Attempt 1 — ViaCEP
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    if (r.ok) {
+      const j = await r.json();
+      if (!j.erro) data = { via: 'viacep', ...j };
+    }
+  } catch(_) {}
+
+  // Attempt 2 — BrasilAPI (fallback)
+  if (!data) {
+    try {
+      const r = await fetch(`https://brasilapi.com.br/api/cep/v2/${cep}`);
+      if (r.ok) {
+        const j = await r.json();
+        // Normalise BrasilAPI shape to ViaCEP shape
+        data = {
+          via:         'brasilapi',
+          logradouro:  j.street       || '',
+          bairro:      j.neighborhood || '',
+          localidade:  j.city         || '',
+          uf:          j.state        || '',
+          cep:         j.cep          || cep,
+        };
+      }
+    } catch(_) {}
+  }
+
+  if (!data) throw new Error('CEP não encontrado em nenhuma fonte');
+
+  const cepFormatted = `${cep.slice(0,5)}-${cep.slice(5)}`;
+  const { logradouro, bairro, localidade, uf } = data;
+
+  // Build the address string that the Maps/AI Directions API will geocode.
+  // Always include the CEP — it's the most precise anchor for the Maps geocoder,
+  // especially when logradouro is empty (CEPs of entire neighborhoods/cities).
+  const addrParts = [logradouro, bairro, localidade, uf].filter(Boolean);
+  const fullAddress = addrParts.length
+    ? `${addrParts.join(', ')}, ${cepFormatted}, Brasil`
+    : `${cepFormatted}, Brasil`;
+
+  // Human-readable display line
+  const line1Parts = [logradouro, bairro].filter(Boolean);
+  const line1 = line1Parts.length ? line1Parts.join(', ') : localidade || cepFormatted;
+  const display = `${line1} — ${localidade}/${uf} · CEP ${cepFormatted}`;
+
+  return { fullAddress, display, localidade, uf, cep: cepFormatted, via: data.via };
 }
 
 // ── AUTOCOMPLETE ──────────────────────────────────────────────
@@ -1580,9 +1635,71 @@ document.addEventListener('click', e => {
 
 function handleAutocomplete(field, val) {
   hideDD(field);
+
+  // Auto-format as CEP mask while the user is typing digits
+  const digits = val.replace(/\D/g, '');
+  if (digits.length <= 8 && /^\d[\d-]*$/.test(val)) {
+    const formatted = formatCEPInput(val);
+    if (formatted !== val) {
+      const el = document.getElementById('form-' + field);
+      el.value = formatted;
+      val = formatted;
+    }
+  }
+
   if (!val || val.length < 3) return;
   clearTimeout(acTimers[field]);
-  acTimers[field] = setTimeout(() => doAC(field, val), 380);
+
+  const cepDigits = extractCEP(val);
+  if (cepDigits) {
+    acTimers[field] = setTimeout(() => lookupCEP(field, cepDigits), 300);
+  } else {
+    acTimers[field] = setTimeout(() => doAC(field, val), 380);
+  }
+}
+
+async function lookupCEP(field, cep) {
+  showDDLoading(field);
+  try {
+    const result = await resolveCEP(cep);
+    const dd = document.getElementById('dropdown-' + field);
+
+    // Escape for inline onclick attribute
+    const safeAddr = result.fullAddress.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+
+    dd.innerHTML = `
+      <div class="autocomplete-item" onclick="pickCEP('${field}','${safeAddr}')">
+        <span class="icon">📮</span>
+        <div style="flex:1;min-width:0">
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-sm)">${result.display}</div>
+          <div style="font-size:9px;color:var(--color-zinc-600);font-family:var(--font-mono);margin-top:2px">
+            ${result.fullAddress}
+          </div>
+        </div>
+        <span style="font-size:9px;font-family:var(--font-mono);color:var(--color-info);flex-shrink:0;margin-left:8px">${result.via === 'brasilapi' ? 'BrasilAPI' : 'ViaCEP'}</span>
+      </div>`;
+    dd.style.display = 'block';
+  } catch(e) {
+    const dd = document.getElementById('dropdown-' + field);
+    dd.innerHTML = `
+      <div style="padding:var(--space-3) var(--space-4)">
+        <div style="color:var(--color-error);font-size:var(--text-sm);margin-bottom:var(--space-2)">✕ CEP ${cep.slice(0,5)}-${cep.slice(5)} não encontrado</div>
+        <div style="color:var(--color-zinc-600);font-size:var(--text-xs);line-height:1.5">
+          Verifique o número ou digite o nome da rua/cidade diretamente.
+        </div>
+      </div>`;
+    dd.style.display = 'block';
+    setTimeout(() => hideDD(field), 3500);
+  }
+}
+
+function pickCEP(field, fullAddress) {
+  document.getElementById('form-' + field).value = fullAddress;
+  placeIds[field] = null; // no placeId — Maps will geocode the full address string
+  hideDD(field);
+  const o = document.getElementById('form-origem').value;
+  const d = document.getElementById('form-destino').value;
+  if (o && d) calcularTempo();
 }
 
 async function doAC(field, val) {
@@ -1593,10 +1710,13 @@ async function doAC(field, val) {
     new google.maps.places.AutocompleteService().getPlacePredictions(
       { input: val, componentRestrictions: { country: 'BR' }, language: 'pt-BR' },
       (preds, st) => {
-        if (st !== 'OK' || !preds) { doACai(field, val, ck); return; }
-        const items = preds.slice(0,6).map(p => ({
+        if (st !== google.maps.places.PlacesServiceStatus.OK || !preds?.length) {
+          doACai(field, val, ck); return;
+        }
+        const items = preds.slice(0, 6).map(p => ({
           nome: p.description,
-          tipo: p.types?.includes('locality') ? 'cidade' : p.types?.includes('route') ? 'endereço' : 'poi',
+          tipo: p.types?.includes('locality') ? 'cidade'
+              : p.types?.includes('route')    ? 'endereço' : 'poi',
           placeId: p.place_id, src: 'gm'
         }));
         acCache[ck] = items; renderDD(field, items);
@@ -1608,23 +1728,19 @@ async function doAC(field, val) {
 }
 
 async function doACai(field, val, ck) {
-  const anthKey = localStorage.getItem('anthropic_key');
-  if (!anthKey) { hideDD(field); return; }
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{
-        'Content-Type':'application/json',
-        'x-api-key': anthKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:400,
-        messages:[{role:'user', content:`Sugira 5 locais reais no Brasil para: "${val}". SOMENTE JSON:\n{"lugares":[{"nome":"Local, Bairro, Cidade - UF","tipo":"cidade|bairro|endereço|poi"}]}`}]
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 400,
+        messages: [{ role: 'user', content:
+          `Sugira 5 locais reais no Brasil para: "${val}". SOMENTE JSON sem markdown:\n{"lugares":[{"nome":"Local, Bairro, Cidade - UF","tipo":"cidade|bairro|endereço|poi"}]}`
+        }]
       })
     });
     const d = await r.json();
-    const parsed = JSON.parse((d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
-    const items = (parsed.lugares||[]).map(l => ({...l, src:'ai'}));
+    const parsed = JSON.parse((d.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
+    const items = (parsed.lugares || []).map(l => ({ ...l, src: 'ai' }));
     acCache[ck] = items; renderDD(field, items);
   } catch { hideDD(field); }
 }
@@ -1638,13 +1754,13 @@ function showDDLoading(f) {
 function renderDD(field, items) {
   const d = document.getElementById('dropdown-' + field);
   if (!items?.length) { d.style.display = 'none'; return; }
-  const ic = { cidade:'🏙', bairro:'🏘', endereço:'📍', poi:'🏢' };
+  const ic = { cidade: '🏙', bairro: '🏘', endereço: '📍', poi: '🏢' };
   d.innerHTML = items.map(l => {
-    const safe = l.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return `<div class="autocomplete-item" onclick="pickAC('${field}','${safe}','${l.placeId||''}')">
-      <span class="icon">${ic[l.tipo]||'📍'}</span>
+    const safe = l.nome.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return `<div class="autocomplete-item" onclick="pickAC('${field}','${safe}','${l.placeId || ''}')">
+      <span class="icon">${ic[l.tipo] || '📍'}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.nome}</span>
-      <span style="font-size:9px;font-family:var(--font-mono);color:${l.src==='gm'?'var(--color-success)':'var(--color-accent-glow)'};flex-shrink:0">${l.src==='gm'?'Maps':'IA'}</span>
+      <span style="font-size:9px;font-family:var(--font-mono);color:${l.src === 'gm' ? 'var(--color-success)' : 'var(--color-accent-glow)'};flex-shrink:0">${l.src === 'gm' ? 'Maps' : 'IA'}</span>
     </div>`;
   }).join('');
   d.style.display = 'block';
@@ -1668,23 +1784,27 @@ async function calcularTempo() {
   document.getElementById('route-result-box')?.remove();
   document.getElementById('tempo-loading').style.display = 'block';
   const btn = document.getElementById('btn-calcular');
-  btn.disabled = true; btn.textContent = 'Calculando...';
+  btn.disabled = true; btn.textContent = 'Calculando ida e volta...';
 
   try {
     if (gmReady) {
-      try { await routeGM(origem, destino); }
-      catch(e) {
-        console.warn('GM route failed:', e.message, '— falling back to AI');
+      try {
+        await routeGM(origem, destino);
+      } catch(e) {
+        console.warn('Google Maps Directions falhou (' + e.message + ') — usando IA');
+        toast('Maps falhou, usando IA como fallback...', 'error');
         await routeAI(origem, destino);
       }
     } else {
       await routeAI(origem, destino);
     }
   } catch(e) {
+    console.error('calcularTempo error:', e);
     toast('Erro ao calcular. Insira o tempo manualmente.', 'error');
   } finally {
     document.getElementById('tempo-loading').style.display = 'none';
     btn.disabled = false; btn.textContent = 'Recalcular rota';
+    syncTempoTotal();
   }
 }
 
@@ -1695,85 +1815,134 @@ function recalcOnHorarioChange() {
 }
 
 // ── GOOGLE MAPS DIRECTIONS ────────────────────────────────────
-function routeGM(origem, destino) {
-  return new Promise((resolve, reject) => {
-    const mode = document.querySelector('.transport-btn.selected')?.dataset?.mode || 'carro';
-    const hor  = document.getElementById('form-horario').value || '08:00';
-    const [h, m] = hor.split(':').map(Number);
-    const dep = new Date();
-    dep.setHours(h, m, 0, 0);
-    if (dep < new Date()) dep.setDate(dep.getDate() + 1);
+async function routeGM(origem, destino) {
+  const mode = document.querySelector('.transport-btn.selected')?.dataset?.mode || 'carro';
+  const horIda   = document.getElementById('form-horario').value       || '08:00';
+  const horVolta = document.getElementById('form-horario-volta').value || '18:00';
 
+  const modeMap = {
+    carro:     google.maps.TravelMode.DRIVING,
+    app:       google.maps.TravelMode.DRIVING,
+    metro:     google.maps.TravelMode.TRANSIT,
+    bike:      google.maps.TravelMode.BICYCLING,
+    caminhada: google.maps.TravelMode.WALKING,
+  };
+  const travelMode = modeMap[mode] || google.maps.TravelMode.DRIVING;
+
+  function makeDep(hor) {
+    const [hh, mm] = hor.split(':').map(Number);
+    const d = new Date();
+    d.setSeconds(0, 0);
+    d.setHours(hh, mm);
+    if (d.getTime() <= Date.now() + 60000) d.setDate(d.getDate() + 1);
+    return d;
+  }
+
+  function buildReq(orig, dest, dep) {
     const req = {
-      origin:      placeIds.origem  ? { placeId: placeIds.origem  } : origem,
-      destination: placeIds.destino ? { placeId: placeIds.destino } : destino,
-      travelMode:  TC[mode]?.travelMode || 'DRIVING',
-      region: 'BR', language: 'pt-BR',
-      provideRouteAlternatives: true
+      origin: orig, destination: dest,
+      travelMode, region: 'BR', language: 'pt-BR',
+      provideRouteAlternatives: true,
     };
     if (mode === 'carro' || mode === 'app') {
-      req.drivingOptions = { departureTime: dep, trafficModel: 'bestguess' };
+      req.drivingOptions = { departureTime: dep, trafficModel: google.maps.TrafficModel.BEST_GUESS };
     }
-    if (mode === 'metro') {
-      req.transitOptions = { departureTime: dep };
-    }
+    if (mode === 'metro') req.transitOptions = { departureTime: dep };
+    return req;
+  }
 
-    new google.maps.DirectionsService().route(req, (res, st) => {
-      if (st !== 'OK') { reject(new Error('Directions: ' + st)); return; }
-      const leg  = res.routes[0].legs[0];
-      const dur  = (leg.duration_in_traffic?.value ?? leg.duration.value);
-      const base = leg.duration.value;
-      const dist = leg.distance.value;
-      const tMin = Math.round(dur / 60);
-      const bMin = Math.round(base / 60);
-      const dKm  = parseFloat((dist / 1000).toFixed(1));
-      const ratio = dur / base;
-      const traf  = ratio > 1.4 ? 'alta' : ratio > 1.15 ? 'média' : 'baixa';
-      const extra = tMin - bMin;
-      const via   = res.routes[0].summary || '';
-
-      document.getElementById('form-tempo').value     = tMin;
-      document.getElementById('form-distancia').value = dKm;
-
-      showRouteBox({
-        src:'gm', tempo:tMin, base:bMin, dist:dKm, traf,
-        extra, via, alts:res.routes.length,
-        endA:leg.start_address, endB:leg.end_address
+  function callDirections(req) {
+    return new Promise((resolve, reject) => {
+      new google.maps.DirectionsService().route(req, (res, st) => {
+        if (st !== google.maps.DirectionsStatus.OK) reject(new Error('DirectionsStatus: ' + st));
+        else resolve(res);
       });
-      previewCalculo();
-      resolve();
     });
+  }
+
+  const origArg = placeIds.origem  ? { placeId: placeIds.origem  } : origem;
+  const destArg = placeIds.destino ? { placeId: placeIds.destino } : destino;
+
+  // Run ida and volta in parallel
+  const [resIda, resVolta] = await Promise.all([
+    callDirections(buildReq(origArg, destArg, makeDep(horIda))),
+    callDirections(buildReq(destArg, origArg, makeDep(horVolta))),
+  ]);
+
+  function parseLeg(res) {
+    const leg   = res.routes[0].legs[0];
+    const durS  = leg.duration_in_traffic ? leg.duration_in_traffic.value : leg.duration.value;
+    const baseS = leg.duration.value;
+    return {
+      tMin:  Math.round(durS  / 60),
+      bMin:  Math.round(baseS / 60),
+      dKm:   parseFloat((leg.distance.value / 1000).toFixed(1)),
+      ratio: durS / baseS,
+      via:   res.routes[0].summary || '',
+      alts:  res.routes.length,
+      endA:  leg.start_address,
+      endB:  leg.end_address,
+    };
+  }
+
+  const ida   = parseLeg(resIda);
+  const volta = parseLeg(resVolta);
+
+  const trafLabel = (ratio) => ratio > 1.4 ? 'alta' : ratio > 1.15 ? 'média' : 'baixa';
+
+  document.getElementById('form-tempo').value          = ida.tMin;
+  document.getElementById('form-tempo-volta').value    = volta.tMin;
+  document.getElementById('form-distancia').value      = ida.dKm;
+  document.getElementById('form-distancia-volta').value= volta.dKm;
+
+  showRouteBox({
+    src: 'gm',
+    ida:   { tempo: ida.tMin,   base: ida.bMin,   dist: ida.dKm,   traf: trafLabel(ida.ratio),   extra: ida.tMin - ida.bMin,   via: ida.via,   endA: ida.endA,   endB: ida.endB   },
+    volta: { tempo: volta.tMin, base: volta.bMin, dist: volta.dKm, traf: trafLabel(volta.ratio), extra: volta.tMin - volta.bMin, via: volta.via },
+    alts: Math.max(ida.alts, volta.alts),
   });
+  previewCalculo();
 }
 
 // ── AI ROUTE ESTIMATION ───────────────────────────────────────
 async function routeAI(origem, destino) {
-  const mode = document.querySelector('.transport-btn.selected')?.dataset?.mode || 'carro';
-  const hor  = document.getElementById('form-horario').value || '08:00';
-  const [h]  = hor.split(':').map(Number);
-  const labels = { carro:'carro', metro:'transporte público', bike:'bicicleta', caminhada:'a pé', app:'Uber/99' };
-  const rush = h>=6&&h<=9?'rush manhã': h>=17&&h<=20?'rush tarde': h>=11&&h<=14?'almoço':'fora do pico';
+  const mode     = document.querySelector('.transport-btn.selected')?.dataset?.mode || 'carro';
+  const horIda   = document.getElementById('form-horario').value       || '08:00';
+  const horVolta = document.getElementById('form-horario-volta').value || '18:00';
+  const labels   = { carro:'carro', metro:'transporte público', bike:'bicicleta', caminhada:'a pé', app:'Uber/99' };
 
-  const anthKey = localStorage.getItem('anthropic_key');
-  if (!anthKey) throw new Error('Chave Anthropic não configurada');
+  function rushLabel(hor) {
+    const [h] = hor.split(':').map(Number);
+    return h>=6&&h<=9 ? 'rush manhã' : h>=17&&h<=20 ? 'rush tarde' : h>=11&&h<=14 ? 'almoço' : 'fora do pico';
+  }
+
   const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST', headers:{
-      'Content-Type':'application/json',
-      'x-api-key': anthKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:400,
-      messages:[{role:'user', content:`Trajeto no Brasil.\nOrigem: ${origem}\nDestino: ${destino}\nTransporte: ${labels[mode]}\nHorário: ${hor} (${rush})\nSOMENTE JSON:\n{"tempoMin":45,"tempoComTraffic":60,"distKm":30,"via":"Rodovia X","traf":"média"}`}]
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514', max_tokens: 500,
+      messages: [{ role: 'user', content:
+        `Calcule ida E volta de um trajeto no Brasil.\nOrigem: ${origem}\nDestino: ${destino}\nTransporte: ${labels[mode]}\nHorário ida: ${horIda} (${rushLabel(horIda)})\nHorário volta: ${horVolta} (${rushLabel(horVolta)})\nConsidere trânsito diferente em cada horário.\nSOMENTE JSON sem markdown:\n{"ida":{"tempoMin":45,"distKm":30,"via":"Rodovia X","traf":"média"},"volta":{"tempoMin":60,"distKm":30,"via":"Rodovia X","traf":"alta"}}`
+      }]
     })
   });
-  const d = await res.json();
-  const j = JSON.parse((d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());
-  const tMin = Math.round(j.tempoComTraffic || j.tempoMin || 30);
-  const dKm  = parseFloat((j.distKm||0).toFixed(1));
-  document.getElementById('form-tempo').value     = tMin;
-  document.getElementById('form-distancia').value = dKm;
-  showRouteBox({ src:'ai', tempo:tMin, base:j.tempoMin, dist:dKm, traf:j.traf, via:j.via });
+  const data = await res.json();
+  const j = JSON.parse((data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
+
+  const tIda   = Math.round(j.ida?.tempoMin   || 30);
+  const tVolta = Math.round(j.volta?.tempoMin || tIda);
+  const dIda   = parseFloat((j.ida?.distKm   || 0).toFixed(1));
+  const dVolta = parseFloat((j.volta?.distKm || dIda).toFixed(1));
+
+  document.getElementById('form-tempo').value           = tIda;
+  document.getElementById('form-tempo-volta').value     = tVolta;
+  document.getElementById('form-distancia').value       = dIda;
+  document.getElementById('form-distancia-volta').value = dVolta;
+
+  showRouteBox({
+    src: 'ai',
+    ida:   { tempo: tIda,   dist: dIda,   traf: j.ida?.traf,   via: j.ida?.via   },
+    volta: { tempo: tVolta, dist: dVolta, traf: j.volta?.traf, via: j.volta?.via },
+  });
   previewCalculo();
 }
 
@@ -1781,32 +1950,50 @@ async function routeAI(origem, destino) {
 function showRouteBox(r) {
   document.getElementById('route-result-box')?.remove();
   const isGM = r.src === 'gm';
-  const trafColor = { alta:'var(--color-error)', média:'var(--color-warning)', baixa:'var(--color-success)' }[r.traf] || 'var(--color-zinc-500)';
+  const trafColor = (t) => ({ alta:'var(--color-error)', média:'var(--color-warning)', baixa:'var(--color-success)' }[t] || 'var(--color-zinc-500)');
+
+  const legRow = (label, leg, hor) => {
+    if (!leg) return '';
+    return `
+      <div style="padding:var(--space-3) 0; ${label==='Volta'?'border-top:1px solid var(--surface-border-subtle)':''}">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs text-mono" style="color:var(--color-zinc-500)">${label} · ${hor}</span>
+          <div class="flex items-center gap-2">
+            <span style="font-family:var(--font-mono);font-size:var(--text-sm);font-weight:500;color:var(--color-white)">${leg.tempo} min</span>
+            <span class="text-xs text-subtle text-mono">${leg.dist} km</span>
+          </div>
+        </div>
+        ${leg.via ? `<div class="text-xs text-subtle">Via ${leg.via}${leg.extra > 0 ? ` · +${leg.extra} min de tráfego` : ' · trânsito fluindo'}</div>` : ''}
+        ${leg.traf ? `<span class="text-xs text-mono" style="color:${trafColor(leg.traf)}">● ${leg.traf.toUpperCase()}</span>` : ''}
+      </div>`;
+  };
+
+  const totalMin = (r.ida?.tempo || 0) + (r.volta?.tempo || 0);
+  const horIda   = document.getElementById('form-horario').value       || '08:00';
+  const horVolta = document.getElementById('form-horario-volta').value || '18:00';
+
   const box = document.createElement('div');
   box.id = 'route-result-box';
   box.innerHTML = `
     <div style="background:${isGM?'rgba(22,163,74,.06)':'var(--color-accent-tint)'};border:1px solid ${isGM?'rgba(22,163,74,.25)':'rgba(99,102,241,.2)'};border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4)">
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           ${isGM
             ? `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#16A34A"/></svg><span class="text-xs text-mono text-success">Google Maps</span>`
             : `<span class="text-xs text-mono text-accent">✦ Claude IA</span>`}
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
           ${r.alts > 1 ? `<span class="badge badge-default">${r.alts} rotas</span>` : ''}
-          <span class="badge ${isGM?'badge-success':'badge-accent'}">${isGM?'✓ Dados reais':'~ Estimativa'}</span>
+          <span class="text-xs text-mono" style="color:var(--color-zinc-400)">Total/dia:</span>
+          <span style="font-family:var(--font-mono);font-size:var(--text-md);font-weight:300;color:var(--color-white)">${fTempo(totalMin)}</span>
         </div>
       </div>
-      ${r.via ? `<div class="text-xs text-subtle mb-2">Via ${r.via}${r.extra > 0 ? ` · +${r.extra} min de tráfego` : ''}</div>` : ''}
-      ${r.endA ? `<div class="text-xs text-subtle"><span class="text-mono" style="color:var(--color-zinc-700)">DE</span> ${r.endA}</div>
-                  <div class="text-xs text-subtle"><span class="text-mono" style="color:var(--color-zinc-700)">ATÉ</span> ${r.endB}</div>` : ''}
-      ${r.traf ? `<div class="flex items-center gap-2 mt-2">
-        <span class="text-xs text-subtle text-mono">Tráfego:</span>
-        <span class="text-xs text-mono" style="color:${trafColor};font-weight:500">${r.traf.toUpperCase()}</span>
-      </div>` : ''}
+      ${r.ida?.endA ? `<div class="text-xs text-subtle mb-3"><span class="text-mono" style="color:var(--color-zinc-700)">DE</span> ${r.ida.endA} <span class="text-mono" style="color:var(--color-zinc-700);margin-left:6px">ATÉ</span> ${r.ida.endB}</div>` : ''}
+      ${legRow('Ida',   r.ida,   horIda)}
+      ${legRow('Volta', r.volta, horVolta)}
     </div>`;
   document.getElementById('tempo-resultado').prepend(box);
-  toast(`${isGM?'🗺 Google Maps':'✦ IA'}: ${r.tempo} min · ${r.dist} km`);
+  toast(`${isGM ? '🗺 Google Maps' : '✦ IA'}: ida ${r.ida?.tempo}min · volta ${r.volta?.tempo}min · total ${fTempo(totalMin)}/dia`);
 }
 
 // ── RENDER DASHBOARD ──────────────────────────────────────────
@@ -1874,7 +2061,7 @@ function renderTrajetos() {
       <div class="route-icon">${tc.emoji}</div>
       <div class="route-info">
         <div class="route-name">${r.origem} → ${r.destino}</div>
-        <div class="route-meta">${tc.name} · ${r.dias}×/sem · ${fTempo(m.minDia)}/dia${r.custoDireto ? ` · ${fBRL(r.custoDireto)}/dia direto` : ''}</div>
+        <div class="route-meta">${tc.name} · ${r.dias}×/sem · ${fTempo(m.minIda)} ida · ${fTempo(m.minVolta)} volta · ${fTempo(m.minDia)}/dia${r.custoDireto ? ` · ${fBRL(r.custoDireto)}/dia direto` : ''}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div class="route-cost">${fK(m.custoMes)}/mês</div>
