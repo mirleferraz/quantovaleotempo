@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trânsito — Quanto custa seu tempo?</title>
+<title>Quanto Vale o Tempo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <!-- Google Maps loaded dynamically after key is entered -->
@@ -593,14 +593,10 @@ a { color: inherit; text-decoration: none; }
 
 <!-- NAV -->
 <nav class="nav">
-  <div class="nav-logo">TR<span>·</span>NSIT</div>
+  <div class="nav-logo" onclick="voltarHome()" style="cursor:pointer">QUANTO VALE<span> O TEMPO</span></div>
   <div class="nav-badge">Beta</div>
   <div class="nav-right">
     <div class="badge badge-accent badge-dot badge-live" id="api-status">✦ IA ativa</div>
-    <button class="btn btn-ghost" onclick="openApiSettings()" id="maps-btn" style="height:32px; padding: 0 var(--space-3); font-size: var(--text-xs); gap: var(--space-2);">
-      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1"/></svg>
-      <span id="maps-btn-label">Conectar Google Maps</span>
-    </button>
     <button class="btn btn-primary" onclick="openModal()" style="height:32px; padding: 0 var(--space-4); font-size: var(--text-xs);">
       + Novo trajeto
     </button>
@@ -619,13 +615,6 @@ a { color: inherit; text-decoration: none; }
           <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
         </svg>
         Dashboard
-      </div>
-      <div class="sidebar-item" onclick="showTab('trajetos')">
-        <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <circle cx="3" cy="4" r="1.5"/><circle cx="13" cy="12" r="1.5"/>
-          <path d="M3 5.5 C3 9 7 7 10 9 S13 10.5 13 10.5"/>
-        </svg>
-        Meus trajetos
       </div>
       <div class="sidebar-item" onclick="showTab('simulador')">
         <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -657,10 +646,10 @@ a { color: inherit; text-decoration: none; }
         <div style="max-width: 640px; margin: var(--space-16) auto 0; text-align: center; padding: 0 var(--space-4);">
           <div class="badge badge-accent mb-6" style="margin: 0 auto var(--space-6);">Calculadora de tempo em trânsito</div>
           <h1 class="animate-fade-up" style="font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 400; color: var(--color-white); line-height: var(--leading-tight); letter-spacing: var(--tracking-tight); margin-bottom: var(--space-6);">
-            Quanto <em style="font-style: italic; color: var(--color-zinc-400);">custa</em> seu<br>tempo no trânsito?
+            Quanto vale o <em style="font-style: italic; color: var(--color-zinc-400);">seu</em><br>tempo no trânsito?
           </h1>
           <p class="animate-fade-up animate-delay-1 text-muted" style="font-size: var(--text-md); line-height: var(--leading-relaxed); margin-bottom: var(--space-10); max-width: 440px; margin-left: auto; margin-right: auto;">
-            Descubra o custo real das horas perdidas em deslocamento, em termos de tempo e dinheiro.
+            Descubra o custo real das horas perdidas em deslocamento. Quanto valeria o seu tempo se você cobrasse por ele?
           </p>
           <button class="btn btn-primary-lg animate-fade-up animate-delay-2" onclick="openModal()" style="max-width: 340px; margin: 0 auto;">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -811,25 +800,6 @@ a { color: inherit; text-decoration: none; }
       </div><!-- /tab-dashboard -->
 
       <!-- TRAJETOS TAB -->
-      <div id="tab-trajetos" class="tab-content" style="display:none;">
-        <div class="flex items-center justify-between mb-6">
-          <div>
-            <div class="section-label">Seus trajetos salvos</div>
-            <h2 style="font-family: var(--font-display); font-size: var(--text-2xl); color: var(--color-white); font-weight: 400;">Trajetos cadastrados</h2>
-          </div>
-          <button class="btn btn-primary" onclick="openModal()">+ Novo trajeto</button>
-        </div>
-
-        <div id="trajetos-list" class="flex-col gap-3"></div>
-
-        <div id="trajetos-empty" class="empty-state mt-8">
-          <div class="empty-state-icon">🚗</div>
-          <div class="empty-state-title">Nenhum trajeto cadastrado</div>
-          <div class="empty-state-desc">Adicione seu primeiro trajeto para começar a calcular o custo do seu tempo no trânsito.</div>
-          <button class="btn btn-primary mt-4" onclick="openModal()">+ Adicionar trajeto</button>
-        </div>
-      </div>
-
       <!-- SIMULADOR TAB -->
       <div id="tab-simulador" class="tab-content" style="display:none;">
         <div class="mb-6">
@@ -1223,23 +1193,25 @@ function fK(v) {
   return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
 }
 
-// ── STORAGE ───────────────────────────────────────────────────
+// ── STORAGE — sem persistência, tudo em memória apenas ────────
 function load() {
+  // Limpa qualquer dado residual de versões anteriores
   try {
-    const r = localStorage.getItem('tr_routes');
-    if (r) S.routes = JSON.parse(r);
-    const s = localStorage.getItem('tr_salary');
-    if (s) S.salary = parseFloat(s);
-  } catch(e){}
+    localStorage.removeItem('tr_routes');
+    localStorage.removeItem('tr_salary');
+  } catch(_) {}
 }
-function save() {
-  try {
-    localStorage.setItem('tr_routes', JSON.stringify(S.routes));
-    localStorage.setItem('tr_salary', S.salary);
-  } catch(e){}
-}
+function save() { /* dados não são persistidos — sessão apenas */ }
 
 // ── TABS ──────────────────────────────────────────────────────
+function voltarHome() {
+  S.routes = [];
+  document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+  document.getElementById('landing-view').style.display = 'block';
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.querySelector('.sidebar-item[onclick*="dashboard"]')?.classList.add('active');
+}
+
 function showTab(tab) {
   S.activeTab = tab;
   document.querySelectorAll('.sidebar-item').forEach(el => {
@@ -1252,7 +1224,6 @@ function showTab(tab) {
   const el = document.getElementById('tab-' + tab);
   if (el) el.style.display = 'block';
   if (tab === 'dashboard') renderDashboard();
-  if (tab === 'trajetos')  renderTrajetos();
   if (tab === 'simulador') renderSimulador();
   if (tab === 'insights')  renderInsights();
 }
@@ -1282,6 +1253,8 @@ function resetModal() {
 
   placeIds.origem  = null;
   placeIds.destino = null;
+  cepCoords.origem  = null;
+  cepCoords.destino = null;
 }
 
 function openModal(editId = null) {
@@ -1444,16 +1417,15 @@ function deletarTrajeto(idx) {
 let gmKey       = '';
 let gmReady     = false;
 let acTimers    = {};
-let acCache     = {};
 let placeIds    = { origem: null, destino: null };
+let cepCoords   = { origem: null, destino: null }; // {lat,lng} from BrasilAPI v2
 
 // ── API SETTINGS MODAL ────────────────────────────────────────
 function openApiSettings() {
   document.getElementById('modal-api').style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  const saved = localStorage.getItem('gm_key') || '';
-  document.getElementById('gmaps-key-input').value = saved;
-  if (saved) setMapStatus('idle');
+  document.getElementById('gmaps-key-input').value = gmKey || '';
+  if (gmKey) setMapStatus('idle');
 }
 function closeApiSettings() {
   document.getElementById('modal-api').style.display = 'none';
@@ -1466,10 +1438,8 @@ function toggleKeyVisibility() {
   b.textContent = i.type === 'password' ? 'mostrar' : 'ocultar';
 }
 function limparApiKey() {
-  localStorage.removeItem('gm_key');
   gmKey = ''; gmReady = false;
   document.getElementById('gmaps-key-input').value = '';
-  document.getElementById('maps-btn-label').textContent = 'Conectar Google Maps';
   document.getElementById('api-status').className = 'badge badge-accent badge-dot badge-live';
   document.getElementById('api-status').textContent = '✦ IA ativa';
   document.getElementById('gm-sdk')?.remove();
@@ -1480,7 +1450,6 @@ async function salvarApiKey() {
   const key = document.getElementById('gmaps-key-input').value.trim();
   if (!key.startsWith('AIza')) { toast('Key inválida (deve começar com AIza)', 'error'); return; }
   gmKey = key;
-  localStorage.setItem('gm_key', key);
   setMapStatus('testing');
   await loadGMSDK(key);
 }
@@ -1559,7 +1528,7 @@ function loadGMSDK(key) {
   });
 }
 
-// ── CEP UTILITIES ─────────────────────────────────────────────
+// ── CEP UTILITIES — BrasilAPI v2 (primary) + ViaCEP (fallback) ─
 
 function extractCEP(val) {
   const d = val.replace(/\D/g, '');
@@ -1571,57 +1540,89 @@ function formatCEPInput(val) {
   return d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d;
 }
 
-// Try ViaCEP first, fall back to BrasilAPI if it fails or returns erro
-async function resolveCEP(cep) {
-  let data = null;
+// Cria AbortSignal com timeout — compatível com browsers sem AbortSignal.timeout()
+function abortAfter(ms) {
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), ms);
+  return ctrl.signal;
+}
 
-  // Attempt 1 — ViaCEP
+async function resolveCEP(cep) {
+  // Garante 8 dígitos sem hífen para as URLs
+  const digits = cep.replace(/\D/g, '');
+  const fmt    = `${digits.slice(0,5)}-${digits.slice(5)}`;
+
+  let logradouro = '', bairro = '', localidade = '', uf = '';
+  let lat = null, lng = null;
+  let fonte = null;
+
+  // ── 1ª tentativa: BrasilAPI v2 ───────────────────────────────
+  // Resposta v2: { cep, state, city, neighborhood, street, service, location:{type,coordinates:{longitude,latitude}} }
   try {
-    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const r = await fetch(
+      `https://brasilapi.com.br/api/cep/v2/${digits}`,
+      { signal: abortAfter(6000) }
+    );
+
     if (r.ok) {
       const j = await r.json();
-      if (!j.erro) data = { via: 'viacep', ...j };
-    }
-  } catch(_) {}
 
-  // Attempt 2 — BrasilAPI (fallback)
-  if (!data) {
+      // CEP inválido ou vazio retorna { message, name, type } sem campo "cep"
+      if (j && j.cep && typeof j.city === 'string') {
+        logradouro = j.street        || '';
+        bairro     = j.neighborhood  || '';
+        localidade = j.city          || '';
+        uf         = j.state         || '';
+
+        // Coordenadas disponíveis na v2 — usa para geocoding preciso
+        const coords = j.location?.coordinates;
+        if (coords?.latitude && coords?.longitude) {
+          lat = parseFloat(coords.latitude);
+          lng = parseFloat(coords.longitude);
+        }
+
+        fonte = 'BrasilAPI';
+      }
+    }
+  } catch (_) {}
+
+  // ── 2ª tentativa: ViaCEP (fallback de conectividade) ─────────
+  // Resposta ViaCEP: { cep, logradouro, complemento, bairro, localidade, uf, ... }
+  if (!fonte) {
     try {
-      const r = await fetch(`https://brasilapi.com.br/api/cep/v2/${cep}`);
+      const r = await fetch(
+        `https://viacep.com.br/ws/${digits}/json/`,
+        { signal: abortAfter(6000) }
+      );
+
       if (r.ok) {
         const j = await r.json();
-        // Normalise BrasilAPI shape to ViaCEP shape
-        data = {
-          via:         'brasilapi',
-          logradouro:  j.street       || '',
-          bairro:      j.neighborhood || '',
-          localidade:  j.city         || '',
-          uf:          j.state        || '',
-          cep:         j.cep          || cep,
-        };
+
+        // ViaCEP retorna { erro: true } para CEPs inválidos
+        if (j && !j.erro && j.localidade) {
+          logradouro = j.logradouro || '';
+          bairro     = j.bairro     || '';
+          localidade = j.localidade || '';
+          uf         = j.uf         || '';
+          fonte      = 'ViaCEP';
+        }
       }
-    } catch(_) {}
+    } catch (_) {}
   }
 
-  if (!data) throw new Error('CEP não encontrado em nenhuma fonte');
+  if (!fonte) throw new Error(`CEP ${fmt} não encontrado`);
 
-  const cepFormatted = `${cep.slice(0,5)}-${cep.slice(5)}`;
-  const { logradouro, bairro, localidade, uf } = data;
-
-  // Build the address string that the Maps/AI Directions API will geocode.
-  // Always include the CEP — it's the most precise anchor for the Maps geocoder,
-  // especially when logradouro is empty (CEPs of entire neighborhoods/cities).
+  // Endereço completo para geocodificador — CEP como âncora de precisão
   const addrParts = [logradouro, bairro, localidade, uf].filter(Boolean);
   const fullAddress = addrParts.length
-    ? `${addrParts.join(', ')}, ${cepFormatted}, Brasil`
-    : `${cepFormatted}, Brasil`;
+    ? `${addrParts.join(', ')}, ${fmt}, Brasil`
+    : `${fmt}, Brasil`;
 
-  // Human-readable display line
-  const line1Parts = [logradouro, bairro].filter(Boolean);
-  const line1 = line1Parts.length ? line1Parts.join(', ') : localidade || cepFormatted;
-  const display = `${line1} — ${localidade}/${uf} · CEP ${cepFormatted}`;
+  // Linha de exibição no dropdown
+  const linha1 = [logradouro, bairro].filter(Boolean).join(', ') || localidade || fmt;
+  const display = `${linha1} — ${localidade}/${uf} · CEP ${fmt}`;
 
-  return { fullAddress, display, localidade, uf, cep: cepFormatted, via: data.via };
+  return { fullAddress, display, logradouro, bairro, localidade, uf, cep: fmt, fonte, lat, lng };
 }
 
 // ── AUTOCOMPLETE ──────────────────────────────────────────────
@@ -1629,6 +1630,7 @@ function hideDD(f) {
   const d = document.getElementById('dropdown-' + f);
   if (d) d.style.display = 'none';
 }
+
 document.addEventListener('click', e => {
   if (!e.target.closest('.autocomplete-wrap')) { hideDD('origem'); hideDD('destino'); }
 });
@@ -1636,82 +1638,99 @@ document.addEventListener('click', e => {
 function handleAutocomplete(field, val) {
   hideDD(field);
 
-  // Auto-format as CEP mask while the user is typing digits
-  const digits = val.replace(/\D/g, '');
-  if (digits.length <= 8 && /^\d[\d-]*$/.test(val)) {
-    const formatted = formatCEPInput(val);
-    if (formatted !== val) {
+  // Apply CEP mask when the user is typing only digits (and hyphens)
+  if (/^\d[\d-]*$/.test(val) && val.replace(/\D/g,'').length <= 8) {
+    const fmt = formatCEPInput(val);
+    if (fmt !== val) {
       const el = document.getElementById('form-' + field);
-      el.value = formatted;
-      val = formatted;
+      // Preserve cursor: only rewrite if value actually changes
+      el.value = fmt;
+      val = fmt;
     }
   }
 
   if (!val || val.length < 3) return;
   clearTimeout(acTimers[field]);
 
-  const cepDigits = extractCEP(val);
+  const cepDigits = extractCEP(val);   // non-null only when exactly 8 digits present
   if (cepDigits) {
-    acTimers[field] = setTimeout(() => lookupCEP(field, cepDigits), 300);
+    acTimers[field] = setTimeout(() => lookupCEP(field, cepDigits), 350);
   } else {
-    acTimers[field] = setTimeout(() => doAC(field, val), 380);
+    acTimers[field] = setTimeout(() => doAC(field, val), 400);
   }
 }
 
 async function lookupCEP(field, cep) {
   showDDLoading(field);
+  const dd = document.getElementById('dropdown-' + field);
+
   try {
     const result = await resolveCEP(cep);
-    const dd = document.getElementById('dropdown-' + field);
 
-    // Escape for inline onclick attribute
-    const safeAddr = result.fullAddress.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const fonteColor = result.fonte === 'BrasilAPI'
+      ? 'var(--color-success)'
+      : 'var(--color-warning)';
+
+    // Monta linhas de exibição
+    const linhaRua    = [result.logradouro, result.bairro].filter(Boolean).join(', ');
+    const linhaCidade = `${result.localidade} — ${result.uf}`;
 
     dd.innerHTML = `
-      <div class="autocomplete-item" onclick="pickCEP('${field}','${safeAddr}')">
+      <div class="autocomplete-item" id="cep-pick-${field}" style="cursor:pointer">
         <span class="icon">📮</span>
-        <div style="flex:1;min-width:0">
-          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-sm)">${result.display}</div>
-          <div style="font-size:9px;color:var(--color-zinc-600);font-family:var(--font-mono);margin-top:2px">
-            ${result.fullAddress}
-          </div>
+        <div style="flex:1;min-width:0;overflow:hidden">
+          ${linhaRua ? `<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-sm);color:var(--color-zinc-200)">${linhaRua}</div>` : ''}
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-xs);color:var(--color-zinc-400);margin-top:2px">${linhaCidade} · CEP ${result.cep}</div>
         </div>
-        <span style="font-size:9px;font-family:var(--font-mono);color:var(--color-info);flex-shrink:0;margin-left:8px">${result.via === 'brasilapi' ? 'BrasilAPI' : 'ViaCEP'}</span>
+        <span style="font-size:9px;font-family:var(--font-mono);color:${fonteColor};flex-shrink:0;margin-left:8px;white-space:nowrap">
+          ${result.fonte === 'BrasilAPI' ? '✓ BrasilAPI' : '~ ViaCEP'}
+        </span>
       </div>`;
+
+    document.getElementById(`cep-pick-${field}`).addEventListener('click', () => {
+      pickCEP(field, result.fullAddress, result.lat, result.lng);
+    });
+
     dd.style.display = 'block';
   } catch(e) {
-    const dd = document.getElementById('dropdown-' + field);
     dd.innerHTML = `
       <div style="padding:var(--space-3) var(--space-4)">
-        <div style="color:var(--color-error);font-size:var(--text-sm);margin-bottom:var(--space-2)">✕ CEP ${cep.slice(0,5)}-${cep.slice(5)} não encontrado</div>
-        <div style="color:var(--color-zinc-600);font-size:var(--text-xs);line-height:1.5">
-          Verifique o número ou digite o nome da rua/cidade diretamente.
+        <div style="color:var(--color-error);font-size:var(--text-sm);margin-bottom:var(--space-2)">
+          ✕ CEP ${cep.slice(0,5)}-${cep.slice(5)} não encontrado
+        </div>
+        <div style="color:var(--color-zinc-600);font-size:var(--text-xs);line-height:1.6">
+          Verifique o número na base dos Correios, ou digite o endereço diretamente.
         </div>
       </div>`;
     dd.style.display = 'block';
-    setTimeout(() => hideDD(field), 3500);
+    setTimeout(() => hideDD(field), 4000);
   }
 }
 
-function pickCEP(field, fullAddress) {
+function pickCEP(field, fullAddress, lat, lng) {
   document.getElementById('form-' + field).value = fullAddress;
-  placeIds[field] = null; // no placeId — Maps will geocode the full address string
+  // Se a BrasilAPI retornou coordenadas, armazena como LatLng para o Maps usar diretamente
+  if (lat && lng) {
+    placeIds[field] = null;
+    cepCoords[field] = { lat, lng };
+  } else {
+    placeIds[field] = null;
+    cepCoords[field] = null;
+  }
   hideDD(field);
-  const o = document.getElementById('form-origem').value;
-  const d = document.getElementById('form-destino').value;
+  const o = document.getElementById('form-origem').value.trim();
+  const d = document.getElementById('form-destino').value.trim();
   if (o && d) calcularTempo();
 }
 
 async function doAC(field, val) {
-  const ck = (gmReady ? 'gm:' : 'ai:') + field + ':' + val.toLowerCase();
-  if (acCache[ck]) { renderDD(field, acCache[ck]); return; }
   showDDLoading(field);
   if (gmReady) {
     new google.maps.places.AutocompleteService().getPlacePredictions(
       { input: val, componentRestrictions: { country: 'BR' }, language: 'pt-BR' },
       (preds, st) => {
         if (st !== google.maps.places.PlacesServiceStatus.OK || !preds?.length) {
-          doACai(field, val, ck); return;
+          doACai(field, val); return;
         }
         const items = preds.slice(0, 6).map(p => ({
           nome: p.description,
@@ -1719,15 +1738,15 @@ async function doAC(field, val) {
               : p.types?.includes('route')    ? 'endereço' : 'poi',
           placeId: p.place_id, src: 'gm'
         }));
-        acCache[ck] = items; renderDD(field, items);
+        renderDD(field, items);
       }
     );
   } else {
-    await doACai(field, val, ck);
+    await doACai(field, val);
   }
 }
 
-async function doACai(field, val, ck) {
+async function doACai(field, val) {
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1741,7 +1760,7 @@ async function doACai(field, val, ck) {
     const d = await r.json();
     const parsed = JSON.parse((d.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
     const items = (parsed.lugares || []).map(l => ({ ...l, src: 'ai' }));
-    acCache[ck] = items; renderDD(field, items);
+    renderDD(field, items);
   } catch { hideDD(field); }
 }
 
@@ -1860,8 +1879,14 @@ async function routeGM(origem, destino) {
     });
   }
 
-  const origArg = placeIds.origem  ? { placeId: placeIds.origem  } : origem;
-  const destArg = placeIds.destino ? { placeId: placeIds.destino } : destino;
+  // Resolve origin/destination: placeId > cepCoords (lat/lng) > raw text string
+  function resolveArg(field, text) {
+    if (placeIds[field])  return { placeId: placeIds[field] };
+    if (cepCoords[field]) return new google.maps.LatLng(cepCoords[field].lat, cepCoords[field].lng);
+    return text;
+  }
+  const origArg = resolveArg('origem',  origem);
+  const destArg = resolveArg('destino', destino);
 
   // Run ida and volta in parallel
   const [resIda, resVolta] = await Promise.all([
@@ -2183,11 +2208,6 @@ if (S.routes.length) {
   document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
 }
 
-// Auto-restore saved GM key
-(async () => {
-  const k = localStorage.getItem('gm_key');
-  if (k) { gmKey = k; try { await loadGMSDK(k); } catch(e) {} }
-})();
 </script>
 </body>
 </html>
