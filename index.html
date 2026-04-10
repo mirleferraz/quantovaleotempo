@@ -1223,15 +1223,23 @@ function fK(v) {
   return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
 }
 
-// ── STORAGE — sem persistência, tudo em memória apenas ────────
+// ── STORAGE ────────────────────────────────────────────────────
 function load() {
-  // Limpa qualquer dado residual de versões anteriores
   try {
+    // Remove dados de rotas de versões antigas (não persistimos rotas)
     localStorage.removeItem('tr_routes');
     localStorage.removeItem('tr_salary');
+
+    // Restaura Anthropic key — IA funciona automaticamente na próxima visita
+    const ak = localStorage.getItem('tr_anthropic_key');
+    if (ak) { anthropicKey = ak; }
+
+    // Restaura Google Maps key e reconecta silenciosamente
+    const gk = localStorage.getItem('tr_gm_key');
+    if (gk) { gmKey = gk; loadGMSDK(gk).catch(() => {}); }
   } catch(_) {}
 }
-function save() { /* dados não são persistidos — sessão apenas */ }
+function save() { /* rotas não são persistidas — sessão apenas */ }
 
 // ── TABS ──────────────────────────────────────────────────────
 function voltarHome() {
@@ -1473,6 +1481,7 @@ function toggleKeyVisibility() {
 }
 function limparApiKey() {
   gmKey = ''; gmReady = false;
+  try { localStorage.removeItem('tr_gm_key'); } catch(_) {}
   document.getElementById('gmaps-key-input').value = '';
   document.getElementById('gm-sdk')?.remove();
   setMapStatus('removed');
@@ -1484,6 +1493,7 @@ function salvarAnthropicKey() {
   const key = document.getElementById('anthropic-key-input').value.trim();
   if (!key.startsWith('sk-ant-')) { toast('Key inválida (deve começar com sk-ant-)', 'error'); return; }
   anthropicKey = key;
+  try { localStorage.setItem('tr_anthropic_key', key); } catch(_) {}
   setAnthropicStatus('ok');
   updateApiStatusBadge();
   toast('Anthropic API Key salva! IA ativa para rotas e autocomplete.');
@@ -1491,6 +1501,7 @@ function salvarAnthropicKey() {
 
 function limparAnthropicKey() {
   anthropicKey = '';
+  try { localStorage.removeItem('tr_anthropic_key'); } catch(_) {}
   document.getElementById('anthropic-key-input').value = '';
   setAnthropicStatus('removed');
   updateApiStatusBadge();
@@ -1538,6 +1549,7 @@ async function salvarApiKey() {
   const key = document.getElementById('gmaps-key-input').value.trim();
   if (!key.startsWith('AIza')) { toast('Key inválida (deve começar com AIza)', 'error'); return; }
   gmKey = key;
+  try { localStorage.setItem('tr_gm_key', key); } catch(_) {}
   setMapStatus('testing');
   await loadGMSDK(key);
 }
@@ -2333,6 +2345,7 @@ function toast(msg, type = 'success') {
 
 // ── INIT ──────────────────────────────────────────────────────
 load();
+updateApiStatusBadge();   // atualiza badge com keys restauradas do localStorage
 if (S.routes.length) {
   document.getElementById('landing-view').style.display = 'none';
   showTab('dashboard');
