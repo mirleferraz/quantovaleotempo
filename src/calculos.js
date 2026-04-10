@@ -150,6 +150,34 @@ function isValidGMapsKey(key) {
   return typeof key === 'string' && key.startsWith('AIza');
 }
 
+/**
+ * Valida se uma key da Anthropic tem o prefixo correto.
+ * @param {string} key
+ * @returns {boolean}
+ */
+function isValidAnthropicKey(key) {
+  return typeof key === 'string' && key.startsWith('sk-ant-');
+}
+
+// ── BADGE DE STATUS DE API ────────────────────────────────────
+/**
+ * Retorna o texto e className do badge de status com base nas APIs ativas.
+ * @param {boolean} gmReady   - Google Maps SDK carregado e validado
+ * @param {string}  anthropicKey - Anthropic API key (string não-vazia = configurada)
+ * @returns {{ className: string, text: string }}
+ */
+function getApiStatusBadge(gmReady, anthropicKey) {
+  if (gmReady && anthropicKey) {
+    return { className: 'badge badge-success badge-dot badge-live', text: 'Google Maps + IA' };
+  } else if (gmReady) {
+    return { className: 'badge badge-success badge-dot badge-live', text: 'Google Maps ativo' };
+  } else if (anthropicKey) {
+    return { className: 'badge badge-accent badge-dot badge-live', text: '✦ IA ativa' };
+  } else {
+    return { className: 'badge badge-accent badge-dot', text: 'Sem API configurada' };
+  }
+}
+
 module.exports = {
   TC,
   metricas,
@@ -162,5 +190,7 @@ module.exports = {
   rushLabel,
   calcularValorHora,
   custoPorMinuto,
-  isValidGMapsKey
+  isValidGMapsKey,
+  isValidAnthropicKey,
+  getApiStatusBadge,
 };
