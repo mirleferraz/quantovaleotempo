@@ -244,7 +244,6 @@ describe('toast() — exibição de notificações', () => {
 // guard calculandoRota — previne chamadas concorrentes
 // ─────────────────────────────────────────────────────────────
 describe('guard calculandoRota — concorrência em calcularTempo()', () => {
-  // Reimplementação mínima da lógica do guard para teste isolado
   function criarCalculadoraComGuard(handler) {
     let calculandoRota = false;
     return async function calcularTempo() {
@@ -261,31 +260,72 @@ describe('guard calculandoRota — concorrência em calcularTempo()', () => {
   test('segunda chamada simultânea é bloqueada', async () => {
     let resolvePrimeira;
     const primeiraPromise = new Promise(r => { resolvePrimeira = r; });
-
     const calcular = criarCalculadoraComGuard(() => primeiraPromise);
-
-    const p1 = calcular();          // inicia, fica pendente
-    const p2 = calcular();          // deve ser bloqueada
-
+    const p1 = calcular();
+    const p2 = calcular();
     expect(await p2).toBe('bloqueado');
-
     resolvePrimeira('ok');
     expect(await p1).toBe('ok');
   });
 
   test('após a primeira concluir, nova chamada é permitida', async () => {
     const calcular = criarCalculadoraComGuard(() => Promise.resolve('feito'));
-
-    await calcular();               // executa e libera o guard
-    const resultado = await calcular();
-    expect(resultado).toBe('feito');
+    await calcular();
+    expect(await calcular()).toBe('feito');
   });
 
   test('guard é liberado mesmo se a chamada lança erro', async () => {
     const calcular = criarCalculadoraComGuard(() => Promise.reject(new Error('falha')));
+    await calcular().catch(() => {});
+    expect(await calcular().catch(() => 'ok-depois-de-erro')).toBe('ok-depois-de-erro');
+  });
+});
 
-    await calcular().catch(() => {});   // ignora o erro
-    const resultado = await calcular().catch(() => 'ok-depois-de-erro');
-    expect(resultado).toBe('ok-depois-de-erro');
+// ─────────────────────────────────────────────────────────────
+// parâmetro manual em calcularTempo() — toasts condicionais
+// ─────────────────────────────────────────────────────────────
+describe('calcularTempo(manual) — toasts só em chamada explícita', () => {
+  // Simula a lógica de validação sem DOM completo
+  function criarValidador({ gmReady, anthropicKey }) {
+    const toasts = [];
+    function toast(msg) { toasts.push(msg); }
+
+    function calcularTempo(manual = false) {
+      if (!gmReady && !anthropicKey) {
+        if (manual) toast('Configure Google Maps ou Anthropic IA nas configurações');
+        return 'sem-api';
+      }
+      return 'executou';
+    }
+
+    return { calcularTempo, toasts };
+  }
+
+  test('auto-trigger sem API: nenhum toast é exibido', () => {
+    const { calcularTempo, toasts } = criarValidador({ gmReady: false, anthropicKey: '' });
+    calcularTempo();          // auto-trigger (manual = false)
+    expect(toasts).toHaveLength(0);
+  });
+
+  test('clique manual sem API: toast de orientação é exibido', () => {
+    const { calcularTempo, toasts } = criarValidador({ gmReady: false, anthropicKey: '' });
+    calcularTempo(true);      // manual
+    expect(toasts).toHaveLength(1);
+    expect(toasts[0]).toContain('Configure');
+  });
+
+  test('com API configurada: executa normalmente em ambos os modos', () => {
+    const { calcularTempo, toasts } = criarValidador({ gmReady: false, anthropicKey: 'sk-ant-key' });
+    expect(calcularTempo()).toBe('executou');
+    expect(calcularTempo(true)).toBe('executou');
+    expect(toasts).toHaveLength(0);
+  });
+
+  test('auto-triggers consecutivos sem API não acumulam toasts', () => {
+    const { calcularTempo, toasts } = criarValidador({ gmReady: false, anthropicKey: '' });
+    calcularTempo();
+    calcularTempo();
+    calcularTempo();
+    expect(toasts).toHaveLength(0);
   });
 });
