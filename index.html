@@ -1133,6 +1133,36 @@ a { color: inherit; text-decoration: none; }
         3. Gere uma API Key em "Credenciais"<br>
         4. Recomende restringir a key ao seu domínio
       </div>
+
+      <div class="divider" style="margin: 0;"></div>
+
+      <!-- Anthropic API Key -->
+      <div class="text-sm" style="color: var(--color-zinc-300); font-weight: 500;">Claude IA (fallback de rotas)</div>
+      <div class="modal-desc" style="margin:0;">
+        Necessária para calcular rotas e autocomplete quando o Google Maps não estiver configurado.
+        Obtenha em <span class="text-accent text-mono">console.anthropic.com</span>.
+      </div>
+      <div class="input-group">
+        <label class="input-label">🤖 Anthropic API Key</label>
+        <div style="position: relative;">
+          <input type="password" class="input" id="anthropic-key-input" placeholder="sk-ant-..." style="padding-right: 80px;">
+          <button onclick="toggleAnthropicKeyVisibility()" class="btn btn-ghost" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); height:28px; font-size:10px;" id="toggle-anthropic-key-btn">mostrar</button>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button class="btn btn-primary" onclick="salvarAnthropicKey()" style="flex:1; justify-content: center;">
+          Salvar key da IA
+        </button>
+        <button class="btn btn-secondary" onclick="limparAnthropicKey()">
+          Remover
+        </button>
+      </div>
+      <div id="anthropic-status-card" style="display:none;" class="card" style="padding: var(--space-4);">
+        <div class="flex items-center gap-3">
+          <div class="status-dot" id="anthropic-status-dot"></div>
+          <div class="text-sm" id="anthropic-status-text"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1416,6 +1446,7 @@ function deletarTrajeto(idx) {
 // ── GOOGLE MAPS STATE ─────────────────────────────────────────
 let gmKey       = '';
 let gmReady     = false;
+let anthropicKey = '';
 let acTimers    = {};
 let placeIds    = { origem: null, destino: null };
 let cepCoords   = { origem: null, destino: null }; // {lat,lng} from BrasilAPI v2
@@ -1426,6 +1457,8 @@ function openApiSettings() {
   document.body.style.overflow = 'hidden';
   document.getElementById('gmaps-key-input').value = gmKey || '';
   if (gmKey) setMapStatus('idle');
+  document.getElementById('anthropic-key-input').value = anthropicKey || '';
+  if (anthropicKey) setAnthropicStatus('ok');
 }
 function closeApiSettings() {
   document.getElementById('modal-api').style.display = 'none';
@@ -1440,11 +1473,65 @@ function toggleKeyVisibility() {
 function limparApiKey() {
   gmKey = ''; gmReady = false;
   document.getElementById('gmaps-key-input').value = '';
-  document.getElementById('api-status').className = 'badge badge-accent badge-dot badge-live';
-  document.getElementById('api-status').textContent = '✦ IA ativa';
   document.getElementById('gm-sdk')?.remove();
   setMapStatus('removed');
+  updateApiStatusBadge();
   toast('Google Maps desconectado. Usando IA como fallback.');
+}
+
+function salvarAnthropicKey() {
+  const key = document.getElementById('anthropic-key-input').value.trim();
+  if (!key.startsWith('sk-ant-')) { toast('Key inválida (deve começar com sk-ant-)', 'error'); return; }
+  anthropicKey = key;
+  setAnthropicStatus('ok');
+  updateApiStatusBadge();
+  toast('Anthropic API Key salva! IA ativa para rotas e autocomplete.');
+}
+
+function limparAnthropicKey() {
+  anthropicKey = '';
+  document.getElementById('anthropic-key-input').value = '';
+  setAnthropicStatus('removed');
+  updateApiStatusBadge();
+  toast('Anthropic key removida.');
+}
+
+function toggleAnthropicKeyVisibility() {
+  const i = document.getElementById('anthropic-key-input');
+  const b = document.getElementById('toggle-anthropic-key-btn');
+  i.type = i.type === 'password' ? 'text' : 'password';
+  b.textContent = i.type === 'password' ? 'mostrar' : 'ocultar';
+}
+
+function setAnthropicStatus(s) {
+  const card = document.getElementById('anthropic-status-card');
+  const dot  = document.getElementById('anthropic-status-dot');
+  const txt  = document.getElementById('anthropic-status-text');
+  const map  = {
+    ok:      ['operational', '✓ Anthropic API Key salva — IA ativa'],
+    removed: ['pending',     'Key removida. Calcule rotas com o Google Maps.'],
+  };
+  const [cls, msg] = map[s] || map.removed;
+  card.style.display = 'block';
+  dot.className = 'status-dot ' + cls;
+  txt.textContent = msg;
+}
+
+function updateApiStatusBadge() {
+  const badge = document.getElementById('api-status');
+  if (gmReady && anthropicKey) {
+    badge.className = 'badge badge-success badge-dot badge-live';
+    badge.textContent = 'Google Maps + IA';
+  } else if (gmReady) {
+    badge.className = 'badge badge-success badge-dot badge-live';
+    badge.textContent = 'Google Maps ativo';
+  } else if (anthropicKey) {
+    badge.className = 'badge badge-accent badge-dot badge-live';
+    badge.textContent = '✦ IA ativa';
+  } else {
+    badge.className = 'badge badge-accent badge-dot';
+    badge.textContent = 'Sem API configurada';
+  }
 }
 async function salvarApiKey() {
   const key = document.getElementById('gmaps-key-input').value.trim();
@@ -1495,8 +1582,7 @@ function loadGMSDK(key) {
               gmReady = true;
               setMapStatus('ok');
               document.getElementById('maps-btn-label').textContent = '✓ Google Maps ativo';
-              document.getElementById('api-status').className = 'badge badge-success badge-dot badge-live';
-              document.getElementById('api-status').textContent = 'Google Maps + IA';
+              updateApiStatusBadge();
               toast('Google Maps conectado! Rotas e tráfego em tempo real ativados.');
               resolve();
             } else {
@@ -1747,16 +1833,24 @@ async function doAC(field, val) {
 }
 
 async function doACai(field, val) {
+  if (!anthropicKey) { hideDD(field); return; }
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514', max_tokens: 400,
+        model: 'claude-sonnet-4-6', max_tokens: 400,
         messages: [{ role: 'user', content:
           `Sugira 5 locais reais no Brasil para: "${val}". SOMENTE JSON sem markdown:\n{"lugares":[{"nome":"Local, Bairro, Cidade - UF","tipo":"cidade|bairro|endereço|poi"}]}`
         }]
       })
     });
+    if (!r.ok) throw new Error('Anthropic API: ' + r.status);
     const d = await r.json();
     const parsed = JSON.parse((d.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
     const items = (parsed.lugares || []).map(l => ({ ...l, src: 'ai' }));
@@ -1941,15 +2035,23 @@ async function routeAI(origem, destino) {
     return h>=6&&h<=9 ? 'rush manhã' : h>=17&&h<=20 ? 'rush tarde' : h>=11&&h<=14 ? 'almoço' : 'fora do pico';
   }
 
+  if (!anthropicKey) throw new Error('Anthropic API key não configurada');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': anthropicKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514', max_tokens: 500,
+      model: 'claude-sonnet-4-6', max_tokens: 500,
       messages: [{ role: 'user', content:
         `Calcule ida E volta de um trajeto no Brasil.\nOrigem: ${origem}\nDestino: ${destino}\nTransporte: ${labels[mode]}\nHorário ida: ${horIda} (${rushLabel(horIda)})\nHorário volta: ${horVolta} (${rushLabel(horVolta)})\nConsidere trânsito diferente em cada horário.\nSOMENTE JSON sem markdown:\n{"ida":{"tempoMin":45,"distKm":30,"via":"Rodovia X","traf":"média"},"volta":{"tempoMin":60,"distKm":30,"via":"Rodovia X","traf":"alta"}}`
       }]
     })
   });
+  if (!res.ok) throw new Error('Anthropic API: ' + res.status);
   const data = await res.json();
   const j = JSON.parse((data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim());
 
