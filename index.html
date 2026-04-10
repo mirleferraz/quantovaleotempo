@@ -893,12 +893,12 @@ a { color: inherit; text-decoration: none; }
       <div class="input-row">
         <div class="input-group autocomplete-wrap">
           <label class="input-label">📍 Local de partida</label>
-          <input type="text" class="input" id="form-origem" placeholder="Endereço, cidade ou CEP" autocomplete="off" oninput="handleAutocomplete('origem', this.value)">
+          <input type="text" class="input" id="form-origem" placeholder="Endereço, cidade ou CEP" autocomplete="off" oninput="handleAutocomplete('origem', this.value)" onblur="autoCalcOnBlur('origem')">
           <div class="autocomplete-dropdown" id="dropdown-origem" style="display:none;"></div>
         </div>
         <div class="input-group autocomplete-wrap">
           <label class="input-label">🏁 Local de chegada</label>
-          <input type="text" class="input" id="form-destino" placeholder="Endereço, cidade ou CEP" autocomplete="off" oninput="handleAutocomplete('destino', this.value)">
+          <input type="text" class="input" id="form-destino" placeholder="Endereço, cidade ou CEP" autocomplete="off" oninput="handleAutocomplete('destino', this.value)" onblur="autoCalcOnBlur('destino')">
           <div class="autocomplete-dropdown" id="dropdown-destino" style="display:none;"></div>
         </div>
       </div>
@@ -1943,6 +1943,19 @@ function recalcOnHorarioChange() {
   const o = document.getElementById('form-origem').value.trim();
   const d = document.getElementById('form-destino').value.trim();
   if (o && d) calcularTempo();
+}
+
+// Calcula automaticamente ao sair do campo (digitação manual sem autocomplete).
+// O delay de 200ms deixa o clique no dropdown ser processado primeiro,
+// evitando cálculo duplo quando o usuário seleciona uma sugestão.
+function autoCalcOnBlur(field) {
+  setTimeout(() => {
+    const dd = document.getElementById('dropdown-' + field);
+    if (dd && dd.style.display !== 'none') return; // usuário está escolhendo do dropdown
+    const o = document.getElementById('form-origem').value.trim();
+    const d = document.getElementById('form-destino').value.trim();
+    if (o && d) calcularTempo();
+  }, 200);
 }
 
 // ── GOOGLE MAPS DIRECTIONS ────────────────────────────────────
