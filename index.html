@@ -1444,9 +1444,10 @@ function deletarTrajeto(idx) {
 }
 
 // ── GOOGLE MAPS STATE ─────────────────────────────────────────
-let gmKey       = '';
-let gmReady     = false;
+let gmKey        = '';
+let gmReady      = false;
 let anthropicKey = '';
+let calculandoRota = false;   // guard contra chamadas concorrentes
 let acTimers    = {};
 let placeIds    = { origem: null, destino: null };
 let cepCoords   = { origem: null, destino: null }; // {lat,lng} from BrasilAPI v2
@@ -1890,10 +1891,19 @@ function pickAC(field, val, pid) {
 
 // ── ROUTE CALCULATION ─────────────────────────────────────────
 async function calcularTempo() {
+  if (calculandoRota) return;   // evita execuções simultâneas
+
   const origem  = document.getElementById('form-origem').value.trim();
   const destino = document.getElementById('form-destino').value.trim();
   if (!origem || !destino) { toast('Preencha origem e destino primeiro', 'error'); return; }
 
+  // Sem nenhuma API configurada: orientar o usuário em vez de mostrar erro
+  if (!gmReady && !anthropicKey) {
+    toast('Configure Google Maps ou Anthropic IA nas configurações ⚙️', 'error');
+    return;
+  }
+
+  calculandoRota = true;
   document.getElementById('route-result-box')?.remove();
   document.getElementById('tempo-loading').style.display = 'block';
   const btn = document.getElementById('btn-calcular');
@@ -1905,8 +1915,12 @@ async function calcularTempo() {
         await routeGM(origem, destino);
       } catch(e) {
         console.warn('Google Maps Directions falhou (' + e.message + ') — usando IA');
-        toast('Maps falhou, usando IA como fallback...', 'error');
-        await routeAI(origem, destino);
+        if (anthropicKey) {
+          toast('Maps falhou, usando IA como fallback...', 'error');
+          await routeAI(origem, destino);
+        } else {
+          throw e;   // relança: só um toast no catch externo
+        }
       }
     } else {
       await routeAI(origem, destino);
@@ -1915,6 +1929,7 @@ async function calcularTempo() {
     console.error('calcularTempo error:', e);
     toast('Erro ao calcular. Insira o tempo manualmente.', 'error');
   } finally {
+    calculandoRota = false;
     document.getElementById('tempo-loading').style.display = 'none';
     btn.disabled = false; btn.textContent = 'Recalcular rota';
     syncTempoTotal();
