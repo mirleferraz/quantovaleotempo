@@ -12,7 +12,9 @@ const {
   rushLabel,
   calcularValorHora,
   custoPorMinuto,
-  isValidGMapsKey
+  isValidGMapsKey,
+  isValidAnthropicKey,
+  getApiStatusBadge,
 } = require('../src/calculos');
 
 // ─────────────────────────────────────────────────────────────
@@ -573,5 +575,96 @@ describe('Integração — cenários reais de trajeto', () => {
     });
     const formatted = fK(m.custoMes);
     expect(formatted).toMatch(/^R\$ /);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// custoPorMinuto() — branch de parâmetro default
+// ─────────────────────────────────────────────────────────────
+describe('custoPorMinuto() — parâmetro horasMes default', () => {
+  test('sem horasMes usa padrão 160', () => {
+    expect(custoPorMinuto(4800)).toBeCloseTo(0.5, 5);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// isValidAnthropicKey()
+// ─────────────────────────────────────────────────────────────
+describe('isValidAnthropicKey() — validação de Anthropic API key', () => {
+  test('key começando com "sk-ant-" é válida', () => {
+    expect(isValidAnthropicKey('sk-ant-api03-abcdefg')).toBe(true);
+  });
+
+  test('key sem prefixo "sk-ant-" é inválida', () => {
+    expect(isValidAnthropicKey('sk-other-key')).toBe(false);
+  });
+
+  test('prefixo parcial "sk-ant" (sem hífen final) é inválido', () => {
+    expect(isValidAnthropicKey('sk-antkey')).toBe(false);
+  });
+
+  test('string vazia é inválida', () => {
+    expect(isValidAnthropicKey('')).toBe(false);
+  });
+
+  test('null é inválido', () => {
+    expect(isValidAnthropicKey(null)).toBe(false);
+  });
+
+  test('undefined é inválido', () => {
+    expect(isValidAnthropicKey(undefined)).toBe(false);
+  });
+
+  test('número é inválido', () => {
+    expect(isValidAnthropicKey(12345)).toBe(false);
+  });
+
+  test('Google Maps key não passa na validação Anthropic', () => {
+    expect(isValidAnthropicKey('AIzaSyAbcDef')).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// getApiStatusBadge()
+// ─────────────────────────────────────────────────────────────
+describe('getApiStatusBadge() — badge de status das APIs', () => {
+  test('ambas as APIs ativas: exibe "Google Maps + IA"', () => {
+    const b = getApiStatusBadge(true, 'sk-ant-key');
+    expect(b.text).toBe('Google Maps + IA');
+    expect(b.className).toContain('badge-success');
+  });
+
+  test('só Google Maps ativo: exibe "Google Maps ativo"', () => {
+    const b = getApiStatusBadge(true, '');
+    expect(b.text).toBe('Google Maps ativo');
+    expect(b.className).toContain('badge-success');
+  });
+
+  test('só Anthropic ativa: exibe "✦ IA ativa"', () => {
+    const b = getApiStatusBadge(false, 'sk-ant-key');
+    expect(b.text).toBe('✦ IA ativa');
+    expect(b.className).toContain('badge-accent');
+  });
+
+  test('nenhuma API configurada: exibe "Sem API configurada"', () => {
+    const b = getApiStatusBadge(false, '');
+    expect(b.text).toBe('Sem API configurada');
+    expect(b.className).toContain('badge-accent');
+    expect(b.className).not.toContain('badge-live');
+  });
+
+  test('badge-live aparece quando pelo menos uma API está ativa', () => {
+    expect(getApiStatusBadge(true, '').className).toContain('badge-live');
+    expect(getApiStatusBadge(false, 'sk-ant-key').className).toContain('badge-live');
+  });
+
+  test('badge-live não aparece quando nenhuma API está ativa', () => {
+    expect(getApiStatusBadge(false, '').className).not.toContain('badge-live');
+  });
+
+  test('ambas ativas retorna badge-success (não badge-accent)', () => {
+    const b = getApiStatusBadge(true, 'sk-ant-key');
+    expect(b.className).toContain('badge-success');
+    expect(b.className).not.toContain('badge-accent');
   });
 });
