@@ -159,6 +159,51 @@ function isValidAnthropicKey(key) {
   return typeof key === 'string' && key.startsWith('sk-ant-');
 }
 
+// ── HAVERSINE / LOCAL ROUTE ESTIMATION ───────────────────────
+/**
+ * Calcula a distância em km entre dois pontos usando a fórmula de Haversine.
+ * @param {number} lat1
+ * @param {number} lng1
+ * @param {number} lat2
+ * @param {number} lng2
+ * @returns {number} distância em km
+ */
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R    = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a    = Math.sin(dLat / 2) ** 2
+             + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180)
+             * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Estima tempo de trajeto localmente a partir de coordenadas lat/lng.
+ * Usa fator de desvio urbano 1,4× sobre a distância em linha reta.
+ *
+ * @param {number} lat1
+ * @param {number} lng1
+ * @param {number} lat2
+ * @param {number} lng2
+ * @param {string} mode    - 'carro' | 'app' | 'metro' | 'bike' | 'caminhada'
+ * @param {string} horario - string "HH:MM"
+ * @returns {{ tempoMin: number, distKm: number, traf: string }}
+ */
+function estimarRotaLocal(lat1, lng1, lat2, lng2, mode, horario) {
+  const straight   = haversineKm(lat1, lng1, lat2, lng2);
+  const roadKm     = parseFloat((straight * 1.4).toFixed(1));
+  const avgSpeed   = { carro: 35, app: 35, metro: 28, bike: 15, caminhada: 5 };
+  const speed      = avgSpeed[mode] || 35;
+  const h          = parseInt(horario);
+  const rushFactor = ((h >= 7 && h <= 9) || (h >= 17 && h <= 19)) ? 1.5
+                   : ((h >= 6 && h <= 10) || (h >= 16 && h <= 20)) ? 1.25 : 1.0;
+  const traf       = rushFactor >= 1.5 ? 'alta' : rushFactor >= 1.25 ? 'média' : 'baixa';
+  const applyRush  = mode === 'carro' || mode === 'app';
+  const tempoMin   = Math.max(1, Math.round((roadKm / speed) * 60 * (applyRush ? rushFactor : 1)));
+  return { tempoMin, distKm: roadKm, traf };
+}
+
 // ── BADGE DE STATUS DE API ────────────────────────────────────
 /**
  * Retorna o texto e className do badge de status com base nas APIs ativas.
@@ -193,4 +238,6 @@ module.exports = {
   isValidGMapsKey,
   isValidAnthropicKey,
   getApiStatusBadge,
+  haversineKm,
+  estimarRotaLocal,
 };
