@@ -15,6 +15,8 @@ const {
   isValidGMapsKey,
   isValidAnthropicKey,
   getApiStatusBadge,
+  haversineKm,
+  estimarRotaLocal,
 } = require('../src/calculos');
 
 // ─────────────────────────────────────────────────────────────
@@ -666,5 +668,129 @@ describe('getApiStatusBadge() — badge de status das APIs', () => {
     const b = getApiStatusBadge(true, 'sk-ant-key');
     expect(b.className).toContain('badge-success');
     expect(b.className).not.toContain('badge-accent');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// haversineKm()
+// ─────────────────────────────────────────────────────────────
+describe('haversineKm() — distância em linha reta entre coordenadas', () => {
+  test('mesmo ponto retorna 0', () => {
+    expect(haversineKm(-23.5614, -46.6558, -23.5614, -46.6558)).toBeCloseTo(0, 3);
+  });
+
+  test('São Paulo → Rio de Janeiro ≈ 357 km', () => {
+    // SP: -23.5505, -46.6333 / RJ: -22.9068, -43.1729
+    const d = haversineKm(-23.5505, -46.6333, -22.9068, -43.1729);
+    expect(d).toBeGreaterThan(340);
+    expect(d).toBeLessThan(380);
+  });
+
+  test('retorna número positivo para pontos distintos', () => {
+    expect(haversineKm(-23.5614, -46.6558, -23.5500, -46.6400)).toBeGreaterThan(0);
+  });
+
+  test('distância é simétrica (A→B == B→A)', () => {
+    const ab = haversineKm(-23.5614, -46.6558, -22.9068, -43.1729);
+    const ba = haversineKm(-22.9068, -43.1729, -23.5614, -46.6558);
+    expect(ab).toBeCloseTo(ba, 5);
+  });
+
+  test('pontos muito próximos (mesmo bairro) retornam < 5 km', () => {
+    // Avenida Paulista ↔ Av. Brigadeiro Luís Antônio — ~2 km
+    const d = haversineKm(-23.5614, -46.6558, -23.5732, -46.6460);
+    expect(d).toBeLessThan(5);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// estimarRotaLocal()
+// ─────────────────────────────────────────────────────────────
+describe('estimarRotaLocal() — estimativa de rota sem API', () => {
+  // Coordenadas fixas: Av. Paulista ↔ Vila Mariana (~3 km linha reta)
+  const lat1 = -23.5614, lng1 = -46.6558;
+  const lat2 = -23.5920, lng2 = -46.6450;
+
+  test('retorna objeto com tempoMin, distKm e traf', () => {
+    const r = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '10:00');
+    expect(r).toHaveProperty('tempoMin');
+    expect(r).toHaveProperty('distKm');
+    expect(r).toHaveProperty('traf');
+  });
+
+  test('tempoMin é inteiro positivo', () => {
+    const r = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '10:00');
+    expect(Number.isInteger(r.tempoMin)).toBe(true);
+    expect(r.tempoMin).toBeGreaterThan(0);
+  });
+
+  test('distKm aplica fator de desvio 1,4× sobre Haversine', () => {
+    const straight = haversineKm(lat1, lng1, lat2, lng2);
+    const r = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '10:00');
+    expect(r.distKm).toBeCloseTo(straight * 1.4, 1);
+  });
+
+  test('modo "carro" em horário de pico retorna traf "alta"', () => {
+    const r = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '08:00');
+    expect(r.traf).toBe('alta');
+  });
+
+  test('modo "carro" em horário intermediário retorna traf "média"', () => {
+    const r = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '06:00');
+    expect(r.traf).toBe('média');
+  });
+
+  test('modo "carro" fora do pico retorna traf "baixa"', () => {
+    const r = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '14:00');
+    expect(r.traf).toBe('baixa');
+  });
+
+  test('modo "caminhada" é mais lento que "carro" para mesma rota', () => {
+    const carro  = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro',     '14:00');
+    const pezes  = estimarRotaLocal(lat1, lng1, lat2, lng2, 'caminhada', '14:00');
+    expect(pezes.tempoMin).toBeGreaterThan(carro.tempoMin);
+  });
+
+  test('modo "bike" tem velocidade entre carro e caminhada', () => {
+    const bike      = estimarRotaLocal(lat1, lng1, lat2, lng2, 'bike',      '14:00');
+    const carro     = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro',     '14:00');
+    const caminhada = estimarRotaLocal(lat1, lng1, lat2, lng2, 'caminhada', '14:00');
+    expect(bike.tempoMin).toBeGreaterThan(carro.tempoMin);
+    expect(bike.tempoMin).toBeLessThan(caminhada.tempoMin);
+  });
+
+  test('modo "caminhada" não recebe fator de pico', () => {
+    const pico  = estimarRotaLocal(lat1, lng1, lat2, lng2, 'caminhada', '08:00');
+    const livre = estimarRotaLocal(lat1, lng1, lat2, lng2, 'caminhada', '14:00');
+    expect(pico.tempoMin).toBe(livre.tempoMin);
+  });
+
+  test('modo "bike" não recebe fator de pico', () => {
+    const pico  = estimarRotaLocal(lat1, lng1, lat2, lng2, 'bike', '08:00');
+    const livre = estimarRotaLocal(lat1, lng1, lat2, lng2, 'bike', '14:00');
+    expect(pico.tempoMin).toBe(livre.tempoMin);
+  });
+
+  test('modo "app" recebe fator de pico (igual a carro)', () => {
+    const app  = estimarRotaLocal(lat1, lng1, lat2, lng2, 'app',   '08:00');
+    const carro = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '08:00');
+    expect(app.tempoMin).toBe(carro.tempoMin);
+  });
+
+  test('pico da tarde (17-19h) resulta em traf "alta" para carro', () => {
+    const r = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '18:00');
+    expect(r.traf).toBe('alta');
+  });
+
+  test('modo desconhecido usa velocidade padrão de carro (35 km/h)', () => {
+    const padrao = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro',       '14:00');
+    const descon = estimarRotaLocal(lat1, lng1, lat2, lng2, 'desconhecido','14:00');
+    expect(descon.tempoMin).toBe(padrao.tempoMin);
+  });
+
+  test('pontos idênticos retornam tempoMin mínimo de 1', () => {
+    const r = estimarRotaLocal(lat1, lng1, lat1, lng1, 'carro', '14:00');
+    expect(r.tempoMin).toBe(1);
+    expect(r.distKm).toBeCloseTo(0, 1);
   });
 });

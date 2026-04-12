@@ -1912,9 +1912,11 @@ async function calcularTempo(manual = false) {
     return;
   }
 
-  // Sem nenhuma API configurada: só avisar quando o usuário clicou explicitamente
-  if (!gmReady && !anthropicKey) {
-    if (manual) toast('Configure Google Maps ou Anthropic IA nas configurações ⚙️', 'error');
+  const temCoords = !!(cepCoords.origem && cepCoords.destino);
+
+  // Sem nenhuma fonte disponível: só avisar quando o usuário clicou explicitamente
+  if (!gmReady && !anthropicKey && !temCoords) {
+    if (manual) toast('Preencha origem e destino com CEP ou configure uma API nas configurações ⚙️', 'error');
     return;
   }
 
@@ -1929,16 +1931,23 @@ async function calcularTempo(manual = false) {
       try {
         await routeGM(origem, destino);
       } catch(e) {
-        console.warn('Google Maps Directions falhou (' + e.message + ') — usando IA');
+        console.warn('Google Maps Directions falhou (' + e.message + ') — tentando IA/local');
         if (anthropicKey) {
           toast('Maps falhou, usando IA como fallback...', 'error');
           await routeAI(origem, destino);
+        } else if (temCoords) {
+          routeLocal(cepCoords.origem.lat, cepCoords.origem.lng,
+                     cepCoords.destino.lat, cepCoords.destino.lng);
         } else {
-          throw e;   // relança: só um toast no catch externo
+          throw e;
         }
       }
-    } else {
+    } else if (anthropicKey) {
       await routeAI(origem, destino);
+    } else {
+      // temCoords garantido verdadeiro aqui
+      routeLocal(cepCoords.origem.lat, cepCoords.origem.lng,
+                 cepCoords.destino.lat, cepCoords.destino.lng);
     }
   } catch(e) {
     console.error('calcularTempo error:', e);
@@ -2116,10 +2125,50 @@ async function routeAI(origem, destino) {
   previewCalculo();
 }
 
+// ── LOCAL ROUTE ESTIMATION (Haversine) ───────────────────────
+function routeLocal(lat1, lng1, lat2, lng2) {
+  const mode     = document.querySelector('.transport-btn.selected')?.dataset?.mode || 'carro';
+  const horIda   = document.getElementById('form-horario').value       || '08:00';
+  const horVolta = document.getElementById('form-horario-volta').value || '18:00';
+
+  function haversineKm(la1, lo1, la2, lo2) {
+    const R = 6371, dLat = (la2-la1)*Math.PI/180, dLng = (lo2-lo1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+  function estimar(horario) {
+    const straight = haversineKm(lat1, lng1, lat2, lng2);
+    const roadKm   = parseFloat((straight * 1.4).toFixed(1));
+    const spd      = { carro:35, app:35, metro:28, bike:15, caminhada:5 }[mode] || 35;
+    const h        = parseInt(horario);
+    const rush     = ((h>=7&&h<=9)||(h>=17&&h<=19)) ? 1.5 : ((h>=6&&h<=10)||(h>=16&&h<=20)) ? 1.25 : 1.0;
+    const traf     = rush>=1.5 ? 'alta' : rush>=1.25 ? 'média' : 'baixa';
+    const applyR   = mode==='carro'||mode==='app';
+    const tempoMin = Math.max(1, Math.round((roadKm / spd) * 60 * (applyR ? rush : 1)));
+    return { tempoMin, distKm: roadKm, traf };
+  }
+
+  const ida   = estimar(horIda);
+  const volta = estimar(horVolta);
+
+  document.getElementById('form-tempo').value           = ida.tempoMin;
+  document.getElementById('form-tempo-volta').value     = volta.tempoMin;
+  document.getElementById('form-distancia').value       = ida.distKm;
+  document.getElementById('form-distancia-volta').value = volta.distKm;
+
+  showRouteBox({
+    src: 'local',
+    ida:   { tempo: ida.tempoMin,   dist: ida.distKm,   traf: ida.traf   },
+    volta: { tempo: volta.tempoMin, dist: volta.distKm, traf: volta.traf },
+  });
+  previewCalculo();
+}
+
 // ── ROUTE RESULT BOX ──────────────────────────────────────────
 function showRouteBox(r) {
   document.getElementById('route-result-box')?.remove();
-  const isGM = r.src === 'gm';
+  const isGM    = r.src === 'gm';
+  const isLocal = r.src === 'local';
   const trafColor = (t) => ({ alta:'var(--color-error)', média:'var(--color-warning)', baixa:'var(--color-success)' }[t] || 'var(--color-zinc-500)');
 
   const legRow = (label, leg, hor) => {
@@ -2142,15 +2191,21 @@ function showRouteBox(r) {
   const horIda   = document.getElementById('form-horario').value       || '08:00';
   const horVolta = document.getElementById('form-horario-volta').value || '18:00';
 
+  const srcBg     = isGM ? 'rgba(22,163,74,.06)'       : isLocal ? 'rgba(234,179,8,.05)'    : 'var(--color-accent-tint)';
+  const srcBorder = isGM ? 'rgba(22,163,74,.25)'       : isLocal ? 'rgba(234,179,8,.25)'    : 'rgba(99,102,241,.2)';
+  const srcBadge  = isGM
+    ? `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#16A34A"/></svg><span class="text-xs text-mono text-success">Google Maps</span>`
+    : isLocal
+    ? `<span class="text-xs text-mono" style="color:#ca8a04">◎ Estimativa local (CEP)</span>`
+    : `<span class="text-xs text-mono text-accent">✦ Claude IA</span>`;
+
   const box = document.createElement('div');
   box.id = 'route-result-box';
   box.innerHTML = `
-    <div style="background:${isGM?'rgba(22,163,74,.06)':'var(--color-accent-tint)'};border:1px solid ${isGM?'rgba(22,163,74,.25)':'rgba(99,102,241,.2)'};border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4)">
+    <div style="background:${srcBg};border:1px solid ${srcBorder};border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4)">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
-          ${isGM
-            ? `<svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#16A34A"/></svg><span class="text-xs text-mono text-success">Google Maps</span>`
-            : `<span class="text-xs text-mono text-accent">✦ Claude IA</span>`}
+          ${srcBadge}
         </div>
         <div class="flex items-center gap-3">
           ${r.alts > 1 ? `<span class="badge badge-default">${r.alts} rotas</span>` : ''}
@@ -2159,11 +2214,13 @@ function showRouteBox(r) {
         </div>
       </div>
       ${r.ida?.endA ? `<div class="text-xs text-subtle mb-3"><span class="text-mono" style="color:var(--color-zinc-700)">DE</span> ${r.ida.endA} <span class="text-mono" style="color:var(--color-zinc-700);margin-left:6px">ATÉ</span> ${r.ida.endB}</div>` : ''}
+      ${isLocal ? `<div class="text-xs text-subtle mb-2" style="color:var(--color-zinc-500)">Estimativa baseada em distância entre CEPs. Configure uma API para maior precisão.</div>` : ''}
       ${legRow('Ida',   r.ida,   horIda)}
       ${legRow('Volta', r.volta, horVolta)}
     </div>`;
   document.getElementById('tempo-resultado').prepend(box);
-  toast(`${isGM ? '🗺 Google Maps' : '✦ IA'}: ida ${r.ida?.tempo}min · volta ${r.volta?.tempo}min · total ${fTempo(totalMin)}/dia`);
+  const srcLabel = isGM ? '🗺 Google Maps' : isLocal ? '◎ Estimativa local' : '✦ IA';
+  toast(`${srcLabel}: ida ${r.ida?.tempo}min · volta ${r.volta?.tempo}min · total ${fTempo(totalMin)}/dia`);
 }
 
 // ── RENDER DASHBOARD ──────────────────────────────────────────
