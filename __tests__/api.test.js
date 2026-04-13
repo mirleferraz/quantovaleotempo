@@ -232,12 +232,25 @@ describe('resolveCEP() — construção do endereço', () => {
     expect(r.display).toContain('São Paulo');
   });
 
-  test('display usa CEP quando todos os campos de endereço estão vazios', async () => {
+  test('display usa localidade como linha1 quando logradouro e bairro estão ausentes no ViaCEP', async () => {
     const semCampos = { ok: false };
     const viaCEPSemRua = { ok: true, json: { localidade: 'São Paulo', uf: 'SP' } };
     mockFetch([semCampos, viaCEPSemRua]);
     const r = await resolveCEP('01310100');
     expect(r.display).toContain('São Paulo');
+  });
+
+  test('display usa CEP como linha1 quando localidade também está vazia', async () => {
+    mockFetch([brasilApiOk({ street: '', neighborhood: '', city: '', state: '' })]);
+    const r = await resolveCEP('01310100');
+    expect(r.display).toContain('01310-100');
+  });
+
+  test('display usa bairro como linha1 quando logradouro está ausente', async () => {
+    mockFetch([brasilApiOk({ street: '' })]);
+    const r = await resolveCEP('01310100');
+    expect(r.display).toContain('Bela Vista');
+    expect(r.display).toContain('São Paulo/SP');
   });
 
   test('fullAddress inclui "Brasil" no final', async () => {
