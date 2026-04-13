@@ -740,6 +740,11 @@ describe('estimarRotaLocal() — estimativa de rota sem API', () => {
     expect(r.traf).toBe('média');
   });
 
+  test('modo "carro" às 16h (pré-pico da tarde) retorna traf "média"', () => {
+    const r = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '16:00');
+    expect(r.traf).toBe('média');
+  });
+
   test('modo "carro" fora do pico retorna traf "baixa"', () => {
     const r = estimarRotaLocal(lat1, lng1, lat2, lng2, 'carro', '14:00');
     expect(r.traf).toBe('baixa');
