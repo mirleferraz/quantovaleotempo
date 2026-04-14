@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <!-- Google Maps loaded dynamically after key is entered -->
+<!-- Firebase Auth SDK (loaded dynamically after config is set) -->
 <style>
 /* ============================================================
    AXIOM DESIGN SYSTEM — Transit Cost Calculator
@@ -591,18 +592,87 @@ a { color: inherit; text-decoration: none; }
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none; position:fixed; inset:0; z-index:2000; background:var(--color-black); align-items:center; justify-content:center; padding:var(--space-6);">
+  <div style="width:100%; max-width:400px; display:flex; flex-direction:column; gap:var(--space-5);">
+
+    <!-- Branding -->
+    <div style="text-align:center; margin-bottom:var(--space-2);">
+      <div style="font-family:var(--font-display); font-size:var(--text-2xl); color:var(--color-white); letter-spacing:-0.02em;">
+        QUANTO VALE<span style="color:var(--color-accent-glow);"> O TEMPO</span>
+      </div>
+      <div class="text-sm text-subtle mt-2">Calcule o custo real dos seus trajetos</div>
+    </div>
+
+    <!-- Card -->
+    <div style="background:var(--surface-card); border:1px solid var(--surface-border); border-radius:var(--radius-lg); padding:var(--space-6); display:flex; flex-direction:column; gap:var(--space-4);">
+
+      <div id="login-title" style="font-family:var(--font-display); font-size:var(--text-xl); color:var(--color-white); text-align:center;">Entrar</div>
+
+      <!-- Google Sign-In -->
+      <button id="login-google-btn" onclick="loginComGoogle()" style="display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:44px; background:#fff; color:#3c4043; border:1px solid #dadce0; border-radius:var(--radius-md); font-size:var(--text-sm); font-weight:500; cursor:pointer; transition:box-shadow .15s;">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Continuar com Google
+      </button>
+
+      <!-- Divider -->
+      <div style="display:flex; align-items:center; gap:var(--space-3);">
+        <div style="flex:1; height:1px; background:var(--surface-border);"></div>
+        <span class="text-xs text-subtle">ou</span>
+        <div style="flex:1; height:1px; background:var(--surface-border);"></div>
+      </div>
+
+      <!-- Email -->
+      <div class="input-group">
+        <label class="input-label">E-mail</label>
+        <input type="email" class="input" id="login-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter') document.getElementById('login-password').focus()">
+      </div>
+
+      <!-- Senha -->
+      <div class="input-group">
+        <label class="input-label">Senha</label>
+        <input type="password" class="input" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter') submitLoginForm()">
+      </div>
+
+      <!-- Mensagem de erro -->
+      <div id="login-error" style="display:none; color:var(--color-error); font-size:var(--text-xs); text-align:center;"></div>
+
+      <!-- Botão principal -->
+      <button id="login-submit-btn" class="btn btn-primary" onclick="submitLoginForm()" style="width:100%; justify-content:center; height:44px; font-size:var(--text-sm);">
+        Entrar
+      </button>
+
+      <!-- Alternar cadastro / login -->
+      <div style="text-align:center; font-size:var(--text-xs); color:var(--color-zinc-500);">
+        <span id="login-toggle-text">Não tem conta?</span>
+        <button onclick="toggleLoginMode()" class="btn btn-ghost" style="height:auto; padding:0 4px; font-size:var(--text-xs); color:var(--color-accent-glow);" id="login-toggle-btn">Criar conta</button>
+      </div>
+
+      <!-- Esqueceu senha -->
+      <div id="forgot-pwd-area" style="text-align:center;">
+        <button onclick="enviarResetSenha()" class="btn btn-ghost" style="height:auto; padding:0; font-size:var(--text-xs); color:var(--color-zinc-500);">Esqueceu a senha?</button>
+      </div>
+    </div>
+
+    <!-- Continuar sem login -->
+    <div style="text-align:center;">
+      <button onclick="continuarSemLogin()" class="btn btn-ghost" style="font-size:var(--text-xs); color:var(--color-zinc-600);">Continuar sem login</button>
+    </div>
+
+  </div>
+</div>
+
 <!-- NAV -->
 <nav class="nav">
   <div class="nav-logo" onclick="voltarHome()" style="cursor:pointer">QUANTO VALE<span> O TEMPO</span></div>
   <div class="nav-badge">Beta</div>
   <div class="nav-right">
     <div class="badge badge-accent badge-dot badge-live" id="api-status">✦ IA ativa</div>
-    <!-- Google Sign-In -->
-    <div id="google-signin-btn"></div>
+    <!-- User info (Firebase Auth) -->
     <div id="google-user-info" style="display:none; align-items:center; gap:6px;">
-      <img id="google-avatar" style="width:26px; height:26px; border-radius:50%; border:1px solid rgba(255,255,255,0.12);">
+      <img id="google-avatar" style="width:26px; height:26px; border-radius:50%; border:1px solid rgba(255,255,255,0.12);" referrerpolicy="no-referrer">
       <span id="google-name" class="text-xs" style="color:var(--color-zinc-300); max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
-      <button onclick="signOutGoogle()" class="btn btn-ghost" style="height:24px; font-size:9px; padding:0 6px;">sair</button>
+      <button onclick="fbSignOut()" class="btn btn-ghost" style="height:24px; font-size:9px; padding:0 6px;">sair</button>
     </div>
     <button class="btn btn-ghost" onclick="openApiSettings()" title="Configurações de API" style="height:32px; padding: 0 var(--space-3); font-size: var(--text-sm);">⚙️</button>
     <button class="btn btn-primary" onclick="openModal()" style="height:32px; padding: 0 var(--space-4); font-size: var(--text-xs);">
@@ -1174,21 +1244,26 @@ a { color: inherit; text-decoration: none; }
 
       <div class="divider" style="margin: 0;"></div>
 
-      <!-- Google Login -->
-      <div class="text-sm" style="color: var(--color-zinc-300); font-weight: 500;">Login com Google</div>
+      <!-- Firebase Auth -->
+      <div class="text-sm" style="color: var(--color-zinc-300); font-weight: 500;">Login (Firebase Auth)</div>
       <div class="modal-desc" style="margin:0;">
-        Identifique-se com sua conta Google. Os dados ficam salvos no seu navegador.
-        Obtenha o Client ID em <span class="text-accent text-mono">console.cloud.google.com → Credenciais → OAuth 2.0</span>.
+        Habilita login com Google e e-mail/senha. Crie um projeto em
+        <span class="text-accent text-mono">console.firebase.google.com</span>,
+        ative Authentication → Google e E-mail/Senha, e cole a configuração abaixo.
       </div>
       <div class="input-group">
-        <label class="input-label">🔑 Google OAuth Client ID</label>
-        <input type="text" class="input" id="google-client-id-input" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com">
+        <label class="input-label">🔥 Firebase Config (JSON)</label>
+        <textarea class="input" id="firebase-config-input" rows="5" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "projeto.firebaseapp.com",
+  "projectId": "projeto"
+}' style="font-family:var(--font-mono); font-size:11px; resize:vertical;"></textarea>
       </div>
       <div class="flex gap-3">
-        <button class="btn btn-primary" onclick="salvarGoogleClientId()" style="flex:1; justify-content:center;">
+        <button class="btn btn-primary" onclick="salvarFirebaseConfig()" style="flex:1; justify-content:center;">
           Ativar login
         </button>
-        <button class="btn btn-secondary" onclick="limparGoogleClientId()">
+        <button class="btn btn-secondary" onclick="limparFirebaseConfig()">
           Remover
         </button>
       </div>
@@ -1267,13 +1342,10 @@ function load() {
     const gk = localStorage.getItem('tr_gm_key');
     if (gk) { gmKey = gk; loadGMSDK(gk).catch(() => {}); }
 
-    // Restaura Google Sign-In
-    const gcid = localStorage.getItem('tr_google_client_id');
-    if (gcid) {
-      googleClientId = gcid;
-      try { googleUser = JSON.parse(localStorage.getItem('tr_google_user') || 'null'); } catch(_) {}
-      renderGoogleUser();
-      initGoogleSignIn(gcid);
+    // Restaura Firebase Auth
+    const fc = localStorage.getItem('tr_firebase_config');
+    if (fc) {
+      try { initFirebase(JSON.parse(fc)); } catch(_) {}
     }
   } catch(_) {}
 }
@@ -1493,97 +1565,157 @@ function deletarTrajeto(idx) {
 let gmKey          = '';
 let gmReady        = false;
 let anthropicKey   = '';
-let googleUser     = null;   // { sub, name, email, picture }
-let googleClientId = '';
+let googleUser     = null;   // { name, email, picture } from Firebase
 let calculandoRota = false;   // guard contra chamadas concorrentes
 let acTimers    = {};
 let placeIds    = { origem: null, destino: null };
 let cepCoords   = { origem: null, destino: null }; // {lat,lng} from BrasilAPI v2
 
-// ── GOOGLE SIGN-IN ────────────────────────────────────────────
-function loadGSIScript(cb) {
-  if (window.google?.accounts?.id) { cb(); return; }
-  const s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true; s.defer = true;
-  s.onload = cb;
-  document.head.appendChild(s);
+// ── FIREBASE AUTH ─────────────────────────────────────────────
+let _fbAuth = null;
+let _loginMode = 'login';   // 'login' | 'signup'
+
+function loadFirebaseSDK(cb) {
+  if (window.firebase?.auth) { cb(); return; }
+  const load = (src, next) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = next;
+    document.head.appendChild(s);
+  };
+  load('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js', () =>
+    load('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js', cb)
+  );
 }
 
-function initGoogleSignIn(clientId) {
-  if (!clientId) return;
-  loadGSIScript(() => {
-    google.accounts.id.initialize({
-      client_id: clientId,
-      callback: handleGoogleCredential,
-      auto_select: true,
-    });
-    google.accounts.id.renderButton(
-      document.getElementById('google-signin-btn'),
-      { theme: 'outline', size: 'medium', shape: 'pill', text: 'signin_with', locale: 'pt-BR' }
-    );
-    if (!googleUser) google.accounts.id.prompt();
+function initFirebase(config) {
+  loadFirebaseSDK(() => {
+    try {
+      if (firebase.apps.length) firebase.apps[0].delete().then(() => _startFirebase(config));
+      else _startFirebase(config);
+    } catch(e) { _startFirebase(config); }
   });
 }
 
-function handleGoogleCredential(response) {
+function _startFirebase(config) {
   try {
-    const b64     = response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    const payload = JSON.parse(atob(b64));
-    googleUser    = { sub: payload.sub, email: payload.email, name: payload.name, picture: payload.picture };
-    localStorage.setItem('tr_google_user', JSON.stringify(googleUser));
-    renderGoogleUser();
-    toast('Olá, ' + googleUser.name.split(' ')[0] + '! Login realizado.');
-  } catch(_) {}
+    const app = firebase.initializeApp(config);
+    _fbAuth = firebase.auth(app);
+    _fbAuth.onAuthStateChanged(user => {
+      googleUser = user ? { name: user.displayName || user.email, email: user.email, picture: user.photoURL } : null;
+      renderGoogleUser();
+      const ls = document.getElementById('login-screen');
+      if (!ls) return;
+      if (user) {
+        ls.style.display = 'none';
+        toast('Olá, ' + (user.displayName || user.email).split(' ')[0] + '! Login realizado.');
+      } else {
+        ls.style.display = 'flex';
+      }
+    });
+  } catch(e) {
+    toast('Erro ao inicializar Firebase: ' + e.message, 'error');
+  }
+}
+
+function loginComGoogle() {
+  if (!_fbAuth) { toast('Configure o Firebase nas configurações ⚙️', 'error'); return; }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  _fbAuth.signInWithPopup(provider).catch(e => {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('login-error').textContent = e.message;
+  });
+}
+
+function submitLoginForm() {
+  if (!_fbAuth) { toast('Configure o Firebase nas configurações ⚙️', 'error'); return; }
+  const email = document.getElementById('login-email').value.trim();
+  const pwd   = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!email || !pwd) { errEl.style.display='block'; errEl.textContent='Preencha e-mail e senha.'; return; }
+  const op = _loginMode === 'signup'
+    ? _fbAuth.createUserWithEmailAndPassword(email, pwd)
+    : _fbAuth.signInWithEmailAndPassword(email, pwd);
+  op.catch(e => {
+    const msgs = {
+      'auth/user-not-found':   'Conta não encontrada.',
+      'auth/wrong-password':   'Senha incorreta.',
+      'auth/email-already-in-use': 'E-mail já cadastrado.',
+      'auth/weak-password':    'Senha fraca — mínimo 6 caracteres.',
+      'auth/invalid-email':    'E-mail inválido.',
+    };
+    errEl.style.display = 'block';
+    errEl.textContent = msgs[e.code] || e.message;
+  });
+}
+
+function toggleLoginMode() {
+  _loginMode = _loginMode === 'login' ? 'signup' : 'login';
+  document.getElementById('login-title').textContent       = _loginMode === 'signup' ? 'Criar conta' : 'Entrar';
+  document.getElementById('login-submit-btn').textContent  = _loginMode === 'signup' ? 'Criar conta' : 'Entrar';
+  document.getElementById('login-toggle-text').textContent = _loginMode === 'signup' ? 'Já tem conta?' : 'Não tem conta?';
+  document.getElementById('login-toggle-btn').textContent  = _loginMode === 'signup' ? 'Entrar' : 'Criar conta';
+  document.getElementById('forgot-pwd-area').style.display = _loginMode === 'signup' ? 'none' : 'block';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+function enviarResetSenha() {
+  if (!_fbAuth) return;
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) { document.getElementById('login-error').style.display='block'; document.getElementById('login-error').textContent='Digite seu e-mail acima.'; return; }
+  _fbAuth.sendPasswordResetEmail(email)
+    .then(() => toast('E-mail de redefinição enviado!'))
+    .catch(e => toast(e.message, 'error'));
+}
+
+function continuarSemLogin() {
+  document.getElementById('login-screen').style.display = 'none';
+}
+
+function fbSignOut() {
+  if (_fbAuth) _fbAuth.signOut();
+  else { googleUser = null; renderGoogleUser(); }
+  toast('Sessão encerrada.');
 }
 
 function renderGoogleUser() {
-  const btnEl  = document.getElementById('google-signin-btn');
   const infoEl = document.getElementById('google-user-info');
-  if (!btnEl || !infoEl) return;
+  if (!infoEl) return;
   if (googleUser) {
-    btnEl.style.display  = 'none';
     infoEl.style.display = 'flex';
-    document.getElementById('google-avatar').src          = googleUser.picture;
-    document.getElementById('google-name').textContent    = googleUser.name.split(' ')[0];
+    const av = document.getElementById('google-avatar');
+    if (av) av.src = googleUser.picture || '';
+    if (av) av.style.display = googleUser.picture ? 'block' : 'none';
+    const nm = document.getElementById('google-name');
+    if (nm) nm.textContent = (googleUser.name || googleUser.email || '').split(' ')[0];
   } else {
-    btnEl.style.display  = 'block';
     infoEl.style.display = 'none';
   }
 }
 
-function signOutGoogle() {
-  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
-  googleUser = null;
-  try { localStorage.removeItem('tr_google_user'); } catch(_) {}
-  renderGoogleUser();
-  toast('Sessão encerrada.');
-}
-
-function salvarGoogleClientId() {
-  const id = document.getElementById('google-client-id-input').value.trim();
-  if (!id.endsWith('.apps.googleusercontent.com')) {
-    toast('Client ID inválido — deve terminar com .apps.googleusercontent.com', 'error');
-    return;
-  }
-  googleClientId = id;
-  try { localStorage.setItem('tr_google_client_id', id); } catch(_) {}
-  initGoogleSignIn(id);
-  toast('Login com Google ativado!');
-  closeApiSettings();
-}
-
-function limparGoogleClientId() {
-  googleClientId = '';
-  googleUser     = null;
-  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+function salvarFirebaseConfig() {
+  const raw = document.getElementById('firebase-config-input').value.trim();
   try {
-    localStorage.removeItem('tr_google_client_id');
-    localStorage.removeItem('tr_google_user');
-  } catch(_) {}
-  document.getElementById('google-client-id-input').value = '';
+    const config = JSON.parse(raw);
+    if (!config.apiKey || !config.authDomain) throw new Error('Campos obrigatórios: apiKey e authDomain');
+    localStorage.setItem('tr_firebase_config', raw);
+    initFirebase(config);
+    toast('Firebase Auth ativado!');
+    closeApiSettings();
+  } catch(e) {
+    toast('JSON inválido: ' + e.message, 'error');
+  }
+}
+
+function limparFirebaseConfig() {
+  try { localStorage.removeItem('tr_firebase_config'); } catch(_) {}
+  if (_fbAuth) _fbAuth.signOut().catch(()=>{});
+  _fbAuth = null;
+  googleUser = null;
   renderGoogleUser();
-  toast('Login com Google removido.');
+  document.getElementById('firebase-config-input').value = '';
+  document.getElementById('login-screen').style.display = 'none';
+  toast('Login removido.');
 }
 
 // ── API SETTINGS MODAL ────────────────────────────────────────
@@ -1594,7 +1726,8 @@ function openApiSettings() {
   if (gmKey) setMapStatus('idle');
   document.getElementById('anthropic-key-input').value = anthropicKey || '';
   if (anthropicKey) setAnthropicStatus('ok');
-  document.getElementById('google-client-id-input').value = googleClientId || '';
+  const fc = localStorage.getItem('tr_firebase_config');
+  if (fc) document.getElementById('firebase-config-input').value = fc;
 }
 function closeApiSettings() {
   document.getElementById('modal-api').style.display = 'none';
