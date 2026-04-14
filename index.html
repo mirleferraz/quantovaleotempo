@@ -597,6 +597,13 @@ a { color: inherit; text-decoration: none; }
   <div class="nav-badge">Beta</div>
   <div class="nav-right">
     <div class="badge badge-accent badge-dot badge-live" id="api-status">✦ IA ativa</div>
+    <!-- Google Sign-In -->
+    <div id="google-signin-btn"></div>
+    <div id="google-user-info" style="display:none; align-items:center; gap:6px;">
+      <img id="google-avatar" style="width:26px; height:26px; border-radius:50%; border:1px solid rgba(255,255,255,0.12);">
+      <span id="google-name" class="text-xs" style="color:var(--color-zinc-300); max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+      <button onclick="signOutGoogle()" class="btn btn-ghost" style="height:24px; font-size:9px; padding:0 6px;">sair</button>
+    </div>
     <button class="btn btn-ghost" onclick="openApiSettings()" title="Configurações de API" style="height:32px; padding: 0 var(--space-3); font-size: var(--text-sm);">⚙️</button>
     <button class="btn btn-primary" onclick="openModal()" style="height:32px; padding: 0 var(--space-4); font-size: var(--text-xs);">
       + Novo trajeto
@@ -1164,6 +1171,27 @@ a { color: inherit; text-decoration: none; }
           <div class="text-sm" id="anthropic-status-text"></div>
         </div>
       </div>
+
+      <div class="divider" style="margin: 0;"></div>
+
+      <!-- Google Login -->
+      <div class="text-sm" style="color: var(--color-zinc-300); font-weight: 500;">Login com Google</div>
+      <div class="modal-desc" style="margin:0;">
+        Identifique-se com sua conta Google. Os dados ficam salvos no seu navegador.
+        Obtenha o Client ID em <span class="text-accent text-mono">console.cloud.google.com → Credenciais → OAuth 2.0</span>.
+      </div>
+      <div class="input-group">
+        <label class="input-label">🔑 Google OAuth Client ID</label>
+        <input type="text" class="input" id="google-client-id-input" placeholder="xxxxxxxxxxxx.apps.googleusercontent.com">
+      </div>
+      <div class="flex gap-3">
+        <button class="btn btn-primary" onclick="salvarGoogleClientId()" style="flex:1; justify-content:center;">
+          Ativar login
+        </button>
+        <button class="btn btn-secondary" onclick="limparGoogleClientId()">
+          Remover
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1238,6 +1266,15 @@ function load() {
     // Restaura Google Maps key e reconecta silenciosamente
     const gk = localStorage.getItem('tr_gm_key');
     if (gk) { gmKey = gk; loadGMSDK(gk).catch(() => {}); }
+
+    // Restaura Google Sign-In
+    const gcid = localStorage.getItem('tr_google_client_id');
+    if (gcid) {
+      googleClientId = gcid;
+      try { googleUser = JSON.parse(localStorage.getItem('tr_google_user') || 'null'); } catch(_) {}
+      renderGoogleUser();
+      initGoogleSignIn(gcid);
+    }
   } catch(_) {}
 }
 function save() { /* rotas não são persistidas — sessão apenas */ }
@@ -1453,13 +1490,101 @@ function deletarTrajeto(idx) {
 }
 
 // ── GOOGLE MAPS STATE ─────────────────────────────────────────
-let gmKey        = '';
-let gmReady      = false;
-let anthropicKey = '';
+let gmKey          = '';
+let gmReady        = false;
+let anthropicKey   = '';
+let googleUser     = null;   // { sub, name, email, picture }
+let googleClientId = '';
 let calculandoRota = false;   // guard contra chamadas concorrentes
 let acTimers    = {};
 let placeIds    = { origem: null, destino: null };
 let cepCoords   = { origem: null, destino: null }; // {lat,lng} from BrasilAPI v2
+
+// ── GOOGLE SIGN-IN ────────────────────────────────────────────
+function loadGSIScript(cb) {
+  if (window.google?.accounts?.id) { cb(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true; s.defer = true;
+  s.onload = cb;
+  document.head.appendChild(s);
+}
+
+function initGoogleSignIn(clientId) {
+  if (!clientId) return;
+  loadGSIScript(() => {
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCredential,
+      auto_select: true,
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('google-signin-btn'),
+      { theme: 'outline', size: 'medium', shape: 'pill', text: 'signin_with', locale: 'pt-BR' }
+    );
+    if (!googleUser) google.accounts.id.prompt();
+  });
+}
+
+function handleGoogleCredential(response) {
+  try {
+    const b64     = response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(b64));
+    googleUser    = { sub: payload.sub, email: payload.email, name: payload.name, picture: payload.picture };
+    localStorage.setItem('tr_google_user', JSON.stringify(googleUser));
+    renderGoogleUser();
+    toast('Olá, ' + googleUser.name.split(' ')[0] + '! Login realizado.');
+  } catch(_) {}
+}
+
+function renderGoogleUser() {
+  const btnEl  = document.getElementById('google-signin-btn');
+  const infoEl = document.getElementById('google-user-info');
+  if (!btnEl || !infoEl) return;
+  if (googleUser) {
+    btnEl.style.display  = 'none';
+    infoEl.style.display = 'flex';
+    document.getElementById('google-avatar').src          = googleUser.picture;
+    document.getElementById('google-name').textContent    = googleUser.name.split(' ')[0];
+  } else {
+    btnEl.style.display  = 'block';
+    infoEl.style.display = 'none';
+  }
+}
+
+function signOutGoogle() {
+  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+  googleUser = null;
+  try { localStorage.removeItem('tr_google_user'); } catch(_) {}
+  renderGoogleUser();
+  toast('Sessão encerrada.');
+}
+
+function salvarGoogleClientId() {
+  const id = document.getElementById('google-client-id-input').value.trim();
+  if (!id.endsWith('.apps.googleusercontent.com')) {
+    toast('Client ID inválido — deve terminar com .apps.googleusercontent.com', 'error');
+    return;
+  }
+  googleClientId = id;
+  try { localStorage.setItem('tr_google_client_id', id); } catch(_) {}
+  initGoogleSignIn(id);
+  toast('Login com Google ativado!');
+  closeApiSettings();
+}
+
+function limparGoogleClientId() {
+  googleClientId = '';
+  googleUser     = null;
+  if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+  try {
+    localStorage.removeItem('tr_google_client_id');
+    localStorage.removeItem('tr_google_user');
+  } catch(_) {}
+  document.getElementById('google-client-id-input').value = '';
+  renderGoogleUser();
+  toast('Login com Google removido.');
+}
 
 // ── API SETTINGS MODAL ────────────────────────────────────────
 function openApiSettings() {
@@ -1469,6 +1594,7 @@ function openApiSettings() {
   if (gmKey) setMapStatus('idle');
   document.getElementById('anthropic-key-input').value = anthropicKey || '';
   if (anthropicKey) setAnthropicStatus('ok');
+  document.getElementById('google-client-id-input').value = googleClientId || '';
 }
 function closeApiSettings() {
   document.getElementById('modal-api').style.display = 'none';
